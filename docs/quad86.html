@@ -1,0 +1,1392 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quad86Emu - x86 Emulator</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'MS Sans Serif', 'Tahoma', Arial, sans-serif;
+    font-size: 11px;
+    background: #008080;
+    background-image: repeating-linear-gradient(
+      45deg,
+      rgba(0,0,0,0.03) 0px, rgba(0,0,0,0.03) 1px,
+      transparent 1px, transparent 8px
+    );
+    min-height: 100vh;
+    overflow: hidden;
+    position: relative;
+    user-select: none;
+  }
+
+  /* ── MENU BAR ───────────────────────── */
+  #menubar {
+    position: fixed; top: 0; left: 0; right: 0; height: 20px;
+    background: #c0c0c0;
+    border-bottom: 1px solid #808080;
+    display: flex; align-items: stretch;
+    z-index: 10000;
+    box-shadow: 0 2px 0 #ffffff inset, 0 -1px 0 #808080 inset;
+  }
+  .menu-item {
+    padding: 0 8px;
+    display: flex; align-items: center;
+    cursor: default;
+    white-space: nowrap;
+    position: relative;
+  }
+  .menu-item:hover, .menu-item.open {
+    background: #000080;
+    color: #fff;
+  }
+  .dropdown {
+    display: none;
+    position: absolute; top: 100%; left: 0;
+    background: #c0c0c0;
+    border: 2px solid;
+    border-color: #ffffff #808080 #808080 #ffffff;
+    min-width: 140px;
+    z-index: 10001;
+    box-shadow: 2px 2px 0 #000;
+  }
+  .menu-item.open .dropdown { display: block; }
+  .dd-item {
+    padding: 4px 20px 4px 8px;
+    cursor: default;
+    white-space: nowrap;
+  }
+  .dd-item:hover { background: #000080; color: #fff; }
+  .dd-item.disabled { color: #808080; pointer-events: none; }
+  .dd-sep { border-top: 1px solid #808080; margin: 2px 0; }
+
+  /* ── WIN98 WINDOW ───────────────────── */
+  .win {
+    position: absolute;
+    background: #c0c0c0;
+    border: 2px solid;
+    border-color: #ffffff #808080 #808080 #ffffff;
+    box-shadow: 2px 2px 0 #000;
+    min-width: 200px;
+    min-height: 80px;
+    display: flex; flex-direction: column;
+  }
+  .win.closed { display: none; }
+  .win.minimized > *:not(.win-title) { display: none !important; }
+
+  .win-title {
+    background: linear-gradient(to right, #000080, #1084d0);
+    color: #fff;
+    padding: 3px 4px;
+    display: flex; align-items: center; gap: 4px;
+    cursor: move;
+    flex-shrink: 0;
+    height: 22px;
+  }
+  .win-icon { width: 14px; height: 14px; flex-shrink: 0; }
+  .win-label { flex: 1; font-weight: bold; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .win-btns { display: flex; gap: 2px; }
+  .win-btn {
+    width: 16px; height: 14px;
+    background: #c0c0c0;
+    border: 1px solid;
+    border-color: #ffffff #808080 #808080 #ffffff;
+    cursor: pointer;
+    font-size: 9px;
+    display: flex; align-items: center; justify-content: center;
+    color: #000; font-weight: bold; line-height: 1;
+    flex-shrink: 0;
+  }
+  .win-btn:active { border-color: #808080 #ffffff #ffffff #808080; }
+
+  .win-body {
+    flex: 1;
+    overflow: hidden;
+    display: flex; flex-direction: column;
+  }
+  .win-toolbar {
+    background: #c0c0c0;
+    border-bottom: 1px solid #808080;
+    padding: 2px 4px;
+    display: flex; gap: 2px; flex-wrap: wrap; flex-shrink: 0;
+  }
+  .btn98 {
+    background: #c0c0c0;
+    border: 2px solid;
+    border-color: #ffffff #808080 #808080 #ffffff;
+    padding: 2px 8px;
+    cursor: pointer;
+    font-size: 11px;
+    font-family: inherit;
+    white-space: nowrap;
+  }
+  .btn98:active, .btn98.pressed {
+    border-color: #808080 #ffffff #ffffff #808080;
+    padding: 3px 7px 1px 9px;
+  }
+  .btn98:disabled { color: #808080; cursor: default; }
+  select98, select.sel98 {
+    background: #fff;
+    border: 2px solid;
+    border-color: #808080 #ffffff #ffffff #808080;
+    font-family: inherit; font-size: 11px;
+    padding: 1px;
+  }
+  select.sel98 { background: #fff; border: 2px solid; border-color: #808080 #ffffff #ffffff #808080; font-family: inherit; font-size: 11px; padding: 1px; }
+  input.inp98 {
+    background: #fff;
+    border: 2px solid;
+    border-color: #808080 #ffffff #ffffff #808080;
+    font-family: 'Courier New', monospace; font-size: 11px;
+    padding: 1px 3px; outline: none;
+  }
+  textarea.ta98 {
+    background: #fff; color: #000;
+    border: 2px solid;
+    border-color: #808080 #ffffff #ffffff #808080;
+    font-family: 'Courier New', monospace; font-size: 11px;
+    resize: none; outline: none;
+    line-height: 1.4;
+  }
+
+  /* ── STATUS BAR ─────────────────────── */
+  .win-status {
+    background: #c0c0c0;
+    border-top: 1px solid #808080;
+    display: flex; align-items: center;
+    height: 18px; flex-shrink: 0;
+  }
+  .status-cell {
+    border: 2px solid;
+    border-color: #808080 #ffffff #ffffff #808080;
+    padding: 0 6px;
+    font-size: 10px; height: 100%;
+    display: flex; align-items: center;
+  }
+
+  /* ── SCROLL ─────────────────────────── */
+  ::-webkit-scrollbar { width: 16px; height: 16px; }
+  ::-webkit-scrollbar-track { background: #c0c0c0; }
+  ::-webkit-scrollbar-thumb {
+    background: #c0c0c0;
+    border: 2px solid;
+    border-color: #ffffff #808080 #808080 #ffffff;
+  }
+  ::-webkit-scrollbar-button {
+    background: #c0c0c0;
+    border: 2px solid;
+    border-color: #ffffff #808080 #808080 #ffffff;
+    width: 16px; height: 16px;
+  }
+
+  /* ── REGISTERS TABLE ─────────────────── */
+  .reg-table { width: 100%; border-collapse: collapse; font-family: 'Courier New', monospace; font-size: 11px; }
+  .reg-table td { padding: 1px 4px; border-bottom: 1px solid #d4d0c8; }
+  .reg-table tr:hover td { background: #000080; color: #fff; }
+  .reg-changed { background: #ffff80 !important; color: #000 !important; }
+
+  /* ── HEX TABLE ──────────────────────── */
+  .hex-table { font-family: 'Courier New', monospace; font-size: 10px; border-collapse: collapse; }
+  .hex-table td { padding: 0 2px; white-space: nowrap; }
+  .hex-addr { color: #800080; font-weight: bold; }
+  .hex-vram { color: #cc0000; }
+  .hex-stack { background: #ffff00; }
+  .hex-ascii { color: #000080; }
+
+  /* ── TERMINAL ────────────────────────── */
+  #term-out {
+    background: #000; color: #00c000;
+    font-family: 'Courier New', monospace; font-size: 11px;
+    padding: 4px; overflow-y: auto;
+    flex: 1;
+    line-height: 1.4;
+  }
+  .t-green { color: #00ff00; }
+  .t-red { color: #ff4444; }
+  .t-yellow { color: #ffff00; }
+  .t-cyan { color: #00ffff; }
+
+  /* ── CANVAS ─────────────────────────── */
+  #vga-canvas {
+    display: block;
+    background: #000;
+    image-rendering: pixelated;
+    border: 2px solid;
+    border-color: #808080 #ffffff #ffffff #808080;
+  }
+
+  /* ── TASKBAR ─────────────────────────── */
+  #taskbar {
+    position: fixed; bottom: 0; left: 0; right: 0; height: 28px;
+    background: #c0c0c0;
+    border-top: 2px solid #ffffff;
+    display: flex; align-items: center; gap: 2px;
+    padding: 2px;
+    z-index: 10000;
+  }
+  .tb-btn {
+    background: #c0c0c0;
+    border: 2px solid;
+    border-color: #ffffff #808080 #808080 #ffffff;
+    padding: 2px 8px;
+    font-size: 11px; font-family: inherit;
+    cursor: pointer; max-width: 140px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .tb-btn.active { border-color: #808080 #ffffff #ffffff #808080; background: #d4d0c8; }
+
+  /* ── MEMORY EDITOR ───────────────────── */
+  .mem-cell {
+    font-family: 'Courier New', monospace; font-size: 10px;
+    display: inline-block; width: 20px; text-align: center;
+    cursor: pointer; padding: 1px;
+  }
+  .mem-cell:hover { background: #000080; color: #fff; }
+  .mem-cell.selected { background: #000080; color: #fff; outline: 1px solid yellow; }
+  .mem-cell.vram { color: #cc0000; }
+  .mem-cell.stack-ptr { background: #ffff00; color: #000; }
+  #mem-edit-input {
+    position: absolute; z-index: 9999;
+    width: 36px;
+    font-family: 'Courier New', monospace; font-size: 10px;
+  }
+
+  /* ── ABOUT ───────────────────────────── */
+  .about-logo {
+    width: 48px; height: 48px;
+    background: #000080;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 18px; font-weight: bold;
+    font-family: 'Courier New', monospace;
+    border: 2px solid;
+    border-color: #ffffff #808080 #808080 #ffffff;
+  }
+
+  /* ── PROJECTS ───────────────────────── */
+  .proj-card {
+    border: 2px solid;
+    border-color: #ffffff #808080 #808080 #ffffff;
+    padding: 6px 8px;
+    margin-bottom: 6px;
+    background: #d4d0c8;
+  }
+  .proj-name { font-weight: bold; font-size: 12px; color: #000080; }
+  .proj-meta { color: #444; font-size: 10px; margin: 2px 0; }
+  .proj-desc { font-size: 11px; margin: 3px 0; }
+  .proj-link { color: #000080; text-decoration: underline; cursor: pointer; }
+</style>
+</head>
+<body>
+
+<!-- ════ MENU BAR ════════════════════════════════════════ -->
+<div id="menubar">
+  <div class="menu-item" id="mi-window" onclick="toggleMenu('window')">
+    Window
+    <div class="dropdown" id="dd-window">
+      <!-- populated by JS -->
+    </div>
+  </div>
+  <div class="menu-item" id="mi-edit" onclick="toggleMenu('edit')">
+    Edit
+    <div class="dropdown" id="dd-edit">
+      <div class="dd-item" onclick="closeMenu();showAbout()">About Quad86Emu...</div>
+      <div class="dd-sep"></div>
+      <div class="dd-item" onclick="closeMenu();renameWin()">Rename window...</div>
+      <div class="dd-item" onclick="closeMenu();changeTheme()">Toggle title gradient</div>
+    </div>
+  </div>
+  <div class="menu-item" id="mi-exit" onclick="if(confirm('Exit Quad86Emu?')) window.close()">
+    Exit
+  </div>
+  <div class="menu-item" id="mi-projects" onclick="toggleMenu('projects')">
+    Projects
+    <div class="dropdown" id="dd-projects">
+      <div class="dd-item disabled" id="proj-loading">Loading projects...</div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ DESKTOP ═════════════════════════════════════════ -->
+<div id="desktop" style="position:fixed;top:20px;left:0;right:0;bottom:28px;overflow:hidden;">
+
+<!-- ══ WINDOW: SOURCE CODE ══════════════════════════════ -->
+<div class="win" id="win-source" style="left:10px;top:10px;width:380px;height:460px;z-index:100">
+  <div class="win-title" onmousedown="startDrag(event,'win-source')">
+    <svg class="win-icon" viewBox="0 0 16 16"><rect x="2" y="2" width="12" height="12" fill="#ffff80" stroke="#000" stroke-width="1"/><text x="8" y="11" text-anchor="middle" font-size="8" fill="#000">ASM</text></svg>
+    <span class="win-label">Assembly Source - Quad86Emu</span>
+    <div class="win-btns">
+      <div class="win-btn" onclick="minimizeWin('win-source')" title="Minimize">_</div>
+      <div class="win-btn" onclick="closeWin('win-source')" title="Close">✕</div>
+    </div>
+  </div>
+  <div class="win-body">
+    <div class="win-toolbar">
+      <button class="btn98" onclick="compileAndReset()">⚡ Compile</button>
+      <button class="btn98" onclick="loadExample('graphics')">VGA Demo</button>
+      <button class="btn98" onclick="loadExample('fib')">Fibonacci</button>
+      <button class="btn98" onclick="loadExample('hello')">Hello World</button>
+    </div>
+    <div style="padding:4px;background:#c0c0c0;font-size:10px;border-bottom:1px solid #808080;flex-shrink:0">
+      EIP → <span id="eip-line" style="font-family:Courier New;color:#000080">EIP: 0x00000000</span>
+    </div>
+    <textarea class="ta98" id="code-editor" style="flex:1;width:100%;padding:4px;" spellcheck="false"></textarea>
+  </div>
+  <div class="win-status">
+    <div class="status-cell" style="flex:1" id="src-status">Ready</div>
+  </div>
+</div>
+
+<!-- ══ WINDOW: VGA DISPLAY ══════════════════════════════ -->
+<div class="win" id="win-vga" style="left:400px;top:10px;width:310px;height:310px;z-index:100">
+  <div class="win-title" onmousedown="startDrag(event,'win-vga')">
+    <svg class="win-icon" viewBox="0 0 16 16"><rect x="1" y="2" width="14" height="10" rx="1" fill="#000080" stroke="#fff" stroke-width="1"/><rect x="5" y="12" width="6" height="2" fill="#808080"/></svg>
+    <span class="win-label">VGA Display [128×128]</span>
+    <div class="win-btns">
+      <div class="win-btn" onclick="minimizeWin('win-vga')">_</div>
+      <div class="win-btn" onclick="closeWin('win-vga')">✕</div>
+    </div>
+  </div>
+  <div class="win-body" style="align-items:center;justify-content:center;padding:8px;background:#808080">
+    <canvas id="vga-canvas" width="128" height="128" style="width:256px;height:256px;"></canvas>
+  </div>
+  <div class="win-status">
+    <div class="status-cell">128×128 · 8bpp RGB332</div>
+    <div class="status-cell" id="vga-fps">VRAM: 0xA0000</div>
+  </div>
+</div>
+
+<!-- ══ WINDOW: CPU CONTROL ══════════════════════════════ -->
+<div class="win" id="win-cpu" style="left:400px;top:330px;width:310px;height:220px;z-index:100">
+  <div class="win-title" onmousedown="startDrag(event,'win-cpu')">
+    <svg class="win-icon" viewBox="0 0 16 16"><rect x="3" y="3" width="10" height="10" fill="#c0c0c0" stroke="#000" stroke-width="1"/><rect x="5" y="5" width="6" height="6" fill="#000080"/></svg>
+    <span class="win-label">CPU Control Panel</span>
+    <div class="win-btns">
+      <div class="win-btn" onclick="minimizeWin('win-cpu')">_</div>
+      <div class="win-btn" onclick="closeWin('win-cpu')">✕</div>
+    </div>
+  </div>
+  <div class="win-body" style="padding:6px;gap:6px;display:flex;flex-direction:column;">
+    <div style="display:flex;gap:4px;flex-wrap:wrap">
+      <button class="btn98" id="btn-step" onclick="stepExecution()" disabled>▷ Step</button>
+      <button class="btn98" id="btn-run"  onclick="runExecution()"  disabled>▶ Run</button>
+      <button class="btn98" id="btn-pause" onclick="pauseExecution()" disabled>⏸ Pause</button>
+      <button class="btn98" id="btn-reset" onclick="resetExecution()" disabled>↺ Reset</button>
+    </div>
+    <div style="display:flex;align-items:center;gap:6px">
+      <span style="width:60px">Speed:</span>
+      <input type="range" id="speed-slider" min="1" max="100" value="50" oninput="updateSpeed(this.value)" style="flex:1">
+      <span id="speed-label" style="width:70px;font-family:Courier New">500 Hz</span>
+    </div>
+    <div style="display:flex;gap:16px;align-items:center">
+      <div>Cycles: <span id="cycle-counter" style="font-family:Courier New;font-weight:bold">0</span></div>
+      <label style="display:flex;align-items:center;gap:4px">
+        <input type="checkbox" id="enable-sound" checked> PC Speaker
+      </label>
+    </div>
+    <div style="display:flex;gap:6px;align-items:center">
+      <span>CPU:</span>
+      <select class="sel98" id="qemu-cpu">
+        <option>Intel 8086 (Minimal)</option>
+        <option selected>Intel 486 DX2</option>
+        <option>Pentium III (Coppermine)</option>
+      </select>
+    </div>
+  </div>
+  <div class="win-status">
+    <div class="status-cell" style="flex:1" id="cpu-status-text">System ready</div>
+  </div>
+</div>
+
+<!-- ══ WINDOW: REGISTERS ════════════════════════════════ -->
+<div class="win" id="win-regs" style="left:720px;top:10px;width:280px;height:280px;z-index:100">
+  <div class="win-title" onmousedown="startDrag(event,'win-regs')">
+    <svg class="win-icon" viewBox="0 0 16 16"><rect x="1" y="3" width="14" height="2" fill="#ffff80"/><rect x="1" y="7" width="14" height="2" fill="#80ff80"/><rect x="1" y="11" width="14" height="2" fill="#80c0ff"/></svg>
+    <span class="win-label">CPU Registers</span>
+    <div class="win-btns">
+      <div class="win-btn" onclick="minimizeWin('win-regs')">_</div>
+      <div class="win-btn" onclick="closeWin('win-regs')">✕</div>
+    </div>
+  </div>
+  <div class="win-body" style="padding:4px;overflow:auto">
+    <table class="reg-table">
+      <thead><tr style="background:#c0c0c0"><th style="text-align:left;padding:1px 4px">Register</th><th>Hex</th><th>Dec</th></tr></thead>
+      <tbody id="reg-tbody"></tbody>
+    </table>
+    <div style="margin-top:6px;padding:4px;border:2px solid;border-color:#808080 #fff #fff #808080;background:#d4d0c8">
+      <span>ZF: <b id="flag-zf">0</b></span>&nbsp;&nbsp;
+      <span>CF: <b id="flag-cf">0</b></span>
+    </div>
+  </div>
+</div>
+
+<!-- ══ WINDOW: MEMORY HEX DUMP ══════════════════════════ -->
+<div class="win" id="win-mem" style="left:720px;top:300px;width:380px;height:280px;z-index:100">
+  <div class="win-title" onmousedown="startDrag(event,'win-mem')">
+    <svg class="win-icon" viewBox="0 0 16 16"><rect x="2" y="1" width="12" height="14" rx="1" fill="#c0c0c0" stroke="#808080" stroke-width="1"/><text x="8" y="9" text-anchor="middle" font-size="5" fill="#000" font-family="Courier New">0xFF</text></svg>
+    <span class="win-label">Memory Editor — Hex Dump</span>
+    <div class="win-btns">
+      <div class="win-btn" onclick="minimizeWin('win-mem')">_</div>
+      <div class="win-btn" onclick="closeWin('win-mem')">✕</div>
+    </div>
+  </div>
+  <div class="win-body">
+    <div class="win-toolbar" style="flex-wrap:nowrap;overflow:hidden">
+      <span>Address:</span>
+      <input type="text" class="inp98" id="mem-offset" value="0xA0000" style="width:70px">
+      <button class="btn98" onclick="jumpMemory()">Go</button>
+      &nbsp;
+      <button class="btn98" onclick="setMemView('hex')">HEX</button>
+      <button class="btn98" onclick="setMemView('dec')">DEC</button>
+      <button class="btn98" onclick="setMemView('ascii')">ASCII</button>
+    </div>
+    <div id="mem-container" style="flex:1;overflow:auto;background:#fff;padding:2px;position:relative"></div>
+    <div class="win-status">
+      <div class="status-cell" id="mem-status">Click a byte to edit it</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ WINDOW: TERMINAL ══════════════════════════════════ -->
+<div class="win" id="win-term" style="left:10px;top:480px;width:700px;height:180px;z-index:100">
+  <div class="win-title" onmousedown="startDrag(event,'win-term')">
+    <svg class="win-icon" viewBox="0 0 16 16"><rect x="1" y="2" width="14" height="12" fill="#000" stroke="#808080" stroke-width="1"/><text x="3" y="10" font-size="7" fill="#00ff00" font-family="Courier New">C:\></text></svg>
+    <span class="win-label">Teletype Terminal — INT 0x80 / COM1</span>
+    <div class="win-btns">
+      <div class="win-btn" onclick="minimizeWin('win-term')">_</div>
+      <div class="win-btn" onclick="closeWin('win-term')">✕</div>
+    </div>
+  </div>
+  <div class="win-body">
+    <div id="term-out"></div>
+  </div>
+</div>
+
+<!-- ══ WINDOW: QUAD86EMU HARDWARE CONFIG ════════════════ -->
+<div class="win" id="win-hw" style="left:10px;top:480px;width:380px;height:260px;z-index:99;display:none">
+  <div class="win-title" onmousedown="startDrag(event,'win-hw')">
+    <svg class="win-icon" viewBox="0 0 16 16"><rect x="1" y="1" width="14" height="14" rx="1" fill="#c0c0c0" stroke="#000"/><circle cx="8" cy="8" r="4" fill="#000080"/></svg>
+    <span class="win-label">Quad86Emu — Hardware Config</span>
+    <div class="win-btns">
+      <div class="win-btn" onclick="minimizeWin('win-hw')">_</div>
+      <div class="win-btn" onclick="closeWin('win-hw')">✕</div>
+    </div>
+  </div>
+  <div class="win-body" style="padding:8px;gap:8px;display:flex;flex-direction:column;">
+    <div style="display:flex;gap:8px;align-items:center">
+      <span style="width:80px">RAM Size:</span>
+      <select class="sel98" id="qemu-ram">
+        <option value="1048576">1 MB (default)</option>
+        <option value="16777216">16 MB (Legacy)</option>
+        <option value="67108864">64 MB</option>
+      </select>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <span style="width:80px">Boot Image:</span>
+      <input type="file" id="disk-file" onchange="handleDiskUpload(event)" style="font-size:10px;flex:1">
+    </div>
+    <div style="background:#fff;border:2px solid;border-color:#808080 #fff #fff #808080;padding:4px;font-family:Courier New;font-size:10px">
+      <span style="color:#808080">Command:</span><br>
+      <span id="qemu-cmd" style="color:#000080">quad86emu -m 1M -cpu 486 -hda (none)</span>
+    </div>
+    <div style="display:flex;gap:4px">
+      <button class="btn98" id="btn-decompile-boot" onclick="decompileBootSector()" disabled>Decompile MBR</button>
+      <button class="btn98" onclick="attemptBoot()">Boot</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ WINDOW: ABOUT ════════════════════════════════════ -->
+<div class="win" id="win-about" style="left:300px;top:100px;width:340px;height:200px;z-index:200;display:none">
+  <div class="win-title" onmousedown="startDrag(event,'win-about')">
+    <svg class="win-icon" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" fill="#000080"/><text x="8" y="12" text-anchor="middle" font-size="10" fill="#fff" font-weight="bold">Q</text></svg>
+    <span class="win-label">About Quad86Emu</span>
+    <div class="win-btns">
+      <div class="win-btn" onclick="closeWin('win-about')">✕</div>
+    </div>
+  </div>
+  <div class="win-body" style="padding:16px;display:flex;gap:16px">
+    <div class="about-logo">Q86</div>
+    <div>
+      <div style="font-size:14px;font-weight:bold;color:#000080">Quad86Emu</div>
+      <div style="font-size:11px;margin-top:2px">x86 Assembler Emulator v2.0</div>
+      <div style="font-size:10px;color:#444;margin-top:6px">Intel 8086/486 Compatible CPU<br>1 MB Virtual RAM · 128×128 VGA<br>INT 0x80 System Calls</div>
+      <div style="font-size:10px;color:#808080;margin-top:8px">© 2024 qlegacy.github.io</div>
+    </div>
+  </div>
+  <div style="text-align:right;padding:6px 8px;border-top:1px solid #808080">
+    <button class="btn98" onclick="closeWin('win-about')" style="min-width:60px">OK</button>
+  </div>
+</div>
+
+<!-- ══ WINDOW: PROJECTS ══════════════════════════════════ -->
+<div class="win" id="win-projects" style="left:200px;top:60px;width:400px;height:350px;z-index:200;display:none">
+  <div class="win-title" onmousedown="startDrag(event,'win-projects')">
+    <svg class="win-icon" viewBox="0 0 16 16"><rect x="1" y="3" width="9" height="11" rx="1" fill="#ffff80" stroke="#808080"/><rect x="6" y="1" width="9" height="11" rx="1" fill="#c0c0c0" stroke="#808080"/></svg>
+    <span class="win-label">Projects — qlegacy.github.io</span>
+    <div class="win-btns">
+      <div class="win-btn" onclick="minimizeWin('win-projects')">_</div>
+      <div class="win-btn" onclick="closeWin('win-projects')">✕</div>
+    </div>
+  </div>
+  <div class="win-body" style="padding:8px;overflow:auto">
+    <div id="projects-list"><i>Loading projects from qlegacy.github.io/projects.json...</i></div>
+  </div>
+  <div class="win-status">
+    <div class="status-cell" id="proj-status">Fetching...</div>
+  </div>
+</div>
+
+</div><!-- /desktop -->
+
+<!-- ════ TASKBAR ══════════════════════════════════════════ -->
+<div id="taskbar">
+  <button class="tb-btn active" onclick="focusWin('win-source')">ASM Source</button>
+  <button class="tb-btn active" onclick="focusWin('win-vga')">VGA Display</button>
+  <button class="tb-btn active" onclick="focusWin('win-cpu')">CPU Control</button>
+  <button class="tb-btn active" onclick="focusWin('win-regs')">Registers</button>
+  <button class="tb-btn active" onclick="focusWin('win-mem')">Memory Editor</button>
+  <button class="tb-btn active" onclick="focusWin('win-term')">Terminal</button>
+</div>
+
+<script>
+// ══════════════════════════════════════
+//  CONSTANTS & CONFIG
+// ══════════════════════════════════════
+// Fixed: Changed to let to allow live RAM resizing from the HW panel
+let MEM_SIZE   = 1048576;
+let STACK_BASE = 1048575;
+const VRAM_START = 655360;
+const VRAM_SIZE  = 16384;
+
+// ══════════════════════════════════════
+//  CPU STATE
+// ══════════════════════════════════════
+let cpu = {
+  regs: { EAX:0, EBX:0, ECX:0, EDX:0, ESP:STACK_BASE, EIP:0 },
+  flags: { ZF:0, CF:0 },
+  memory: new Uint8Array(MEM_SIZE),
+  halted: false, running: false, cycles: 0
+};
+let program = [], labels = {}, prevRegs = {};
+let simSpeed = 50, memViewMode = 'hex', memDisplayOffset = VRAM_START;
+let audioCtx = null;
+let selectedMemCell = null;
+
+// ══════════════════════════════════════
+//  WINDOW MANAGEMENT
+// ══════════════════════════════════════
+let zTop = 200;
+function focusWin(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  if (el.classList.contains('closed')) { openWin(id); return; }
+  el.classList.remove('minimized');
+  el.style.display = '';
+  el.style.zIndex = ++zTop;
+  updateTaskbar();
+}
+function closeWin(id) {
+  const el = document.getElementById(id);
+  el.classList.add('closed');
+  el.style.display = 'none';
+  updateTaskbar();
+}
+function openWin(id) {
+  const el = document.getElementById(id);
+  el.classList.remove('closed','minimized');
+  el.style.display = '';
+  el.style.zIndex = ++zTop;
+  updateTaskbar();
+}
+function minimizeWin(id) {
+  const el = document.getElementById(id);
+  el.classList.add('minimized');
+  el.style.display = 'none';
+  updateTaskbar();
+}
+
+const WIN_LABELS = {
+  'win-source': 'ASM Source', 'win-vga': 'VGA Display',
+  'win-cpu': 'CPU Control', 'win-regs': 'Registers',
+  'win-mem': 'Memory Editor', 'win-term': 'Terminal',
+  'win-hw': 'HW Config', 'win-about': 'About',
+  'win-projects': 'Projects'
+};
+function updateTaskbar() {
+  const tb = document.getElementById('taskbar');
+  tb.innerHTML = '';
+  Object.entries(WIN_LABELS).forEach(([id, label]) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const btn = document.createElement('button');
+    btn.className = 'tb-btn';
+    const isOpen = !el.classList.contains('closed') && !el.classList.contains('minimized') && el.style.display !== 'none';
+    if (isOpen) btn.classList.add('active');
+    else btn.style.color = '#808080';
+    btn.textContent = label;
+    btn.onclick = () => isOpen ? minimizeWin(id) : openWin(id);
+    tb.appendChild(btn);
+  });
+}
+function updateWindowMenu() {
+  const dd = document.getElementById('dd-window');
+  dd.innerHTML = '';
+  Object.entries(WIN_LABELS).forEach(([id, label]) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const isClosed = el.classList.contains('closed') || el.style.display === 'none';
+    const div = document.createElement('div');
+    div.className = 'dd-item' + (isClosed ? ' disabled' : '');
+    div.style.color = isClosed ? '#808080' : '#000';
+    div.textContent = (isClosed ? '  ' : '✓ ') + label;
+    div.onclick = () => { closeMenu(); isClosed ? openWin(id) : minimizeWin(id); };
+    dd.appendChild(div);
+  });
+}
+
+// ══════════════════════════════════════
+//  DRAG
+// ══════════════════════════════════════
+let dragging = null, dragOffX = 0, dragOffY = 0;
+function startDrag(e, id) {
+  if (e.target.classList.contains('win-btn')) return;
+  dragging = document.getElementById(id);
+  focusWin(id);
+  dragOffX = e.clientX - dragging.offsetLeft;
+  dragOffY = e.clientY - dragging.offsetTop;
+  e.preventDefault();
+}
+document.addEventListener('mousemove', e => {
+  if (!dragging) return;
+  const desk = document.getElementById('desktop');
+  let x = e.clientX - dragOffX;
+  let y = e.clientY - dragOffY;
+  x = Math.max(0, Math.min(x, desk.offsetWidth - dragging.offsetWidth));
+  y = Math.max(0, Math.min(y, desk.offsetHeight - 10));
+  dragging.style.left = x + 'px';
+  dragging.style.top  = y + 'px';
+});
+document.addEventListener('mouseup', () => { dragging = null; });
+
+// ══════════════════════════════════════
+//  MENU
+// ══════════════════════════════════════
+let openMenuId = null;
+function toggleMenu(name) {
+  closeMenu();
+  if (openMenuId === name) { openMenuId = null; return; }
+  openMenuId = name;
+  document.getElementById('mi-' + name).classList.add('open');
+  if (name === 'window') updateWindowMenu();
+  if (name === 'projects') loadProjectsMenu();
+}
+function closeMenu() {
+  if (openMenuId) {
+    document.getElementById('mi-' + openMenuId).classList.remove('open');
+    openMenuId = null;
+  }
+}
+document.addEventListener('click', e => {
+  if (!e.target.closest('.menu-item')) closeMenu();
+});
+
+function showAbout() { openWin('win-about'); }
+function renameWin() {
+  const name = prompt('New window title for selected (win-source):');
+  if (name) document.querySelector('#win-source .win-label').textContent = name;
+}
+let altTitle = false;
+function changeTheme() {
+  altTitle = !altTitle;
+  document.querySelectorAll('.win-title').forEach(el => {
+    el.style.background = altTitle
+      ? 'linear-gradient(to right, #800000, #c04040)'
+      : 'linear-gradient(to right, #000080, #1084d0)';
+  });
+}
+
+// ══════════════════════════════════════
+//  PROJECTS — qlegacy.github.io
+// ══════════════════════════════════════
+let projectsLoaded = false;
+function loadProjectsMenu() {
+  if (!projectsLoaded) fetchProjects();
+}
+function fetchProjects() {
+  openWin('win-projects');
+  closeMenu();
+  const list = document.getElementById('projects-list');
+  const status = document.getElementById('proj-status');
+  list.innerHTML = '<i>Fetching qlegacy.github.io/projects.json...</i>';
+
+  fetch('https://qlegacy.github.io/projects.json')
+    .then(r => {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    })
+    .then(data => renderProjects(data))
+    .catch(() => {
+      // Fallback: use embedded sample data so it always works
+      renderProjects([
+        {
+          name: "Quad86Emu",
+          description: "x86 assembly emulator with VGA display, register viewer and memory editor running entirely in the browser.",
+          version: "2.0.0",
+          created: "2024-01-15",
+          url: "https://qlegacy.github.io/quad86emu",
+          html: "https://qlegacy.github.io/quad86emu/index.html"
+        },
+        {
+          name: "RetroShell",
+          description: "Retro terminal emulator with BASIC interpreter and classic DOS-style commands.",
+          version: "1.3.2",
+          created: "2023-08-20",
+          url: "https://qlegacy.github.io/retroshell",
+          html: "https://qlegacy.github.io/retroshell/index.html"
+        },
+        {
+          name: "PixelForge",
+          description: "Pixel art editor with palette management, animation timeline and export to GIF/PNG.",
+          version: "0.9.1",
+          created: "2024-03-10",
+          url: "https://qlegacy.github.io/pixelforge",
+          html: "https://qlegacy.github.io/pixelforge/index.html"
+        }
+      ], true);
+    });
+}
+function renderProjects(data, fallback) {
+  const list = document.getElementById('projects-list');
+  const status = document.getElementById('proj-status');
+  projectsLoaded = true;
+  list.innerHTML = '';
+  data.forEach(p => {
+    const card = document.createElement('div');
+    card.className = 'proj-card';
+    card.innerHTML = `
+      <div class="proj-name">${esc(p.name)} <span style="font-size:10px;font-weight:normal;color:#444">v${esc(p.version)}</span></div>
+      <div class="proj-meta">Created: ${esc(p.created)}</div>
+      <div class="proj-desc">${esc(p.description)}</div>
+      <div style="margin-top:4px;display:flex;gap:12px">
+        <a class="proj-link" href="${esc(p.url)}" target="_blank">Project page</a>
+        ${p.html ? `<a class="proj-link" href="${esc(p.html)}" target="_blank">Open HTML</a>` : ''}
+      </div>`;
+    list.appendChild(card);
+  });
+  status.textContent = fallback
+    ? `${data.length} projects (offline sample)`
+    : `${data.length} projects loaded`;
+  // Populate menu dropdown too
+  const ddp = document.getElementById('dd-projects');
+  ddp.innerHTML = '';
+  data.forEach(p => {
+    const d = document.createElement('div');
+    d.className = 'dd-item';
+    d.textContent = p.name + ' v' + p.version;
+    d.onclick = () => { closeMenu(); openWin('win-projects'); };
+    ddp.appendChild(d);
+  });
+  const sep = document.createElement('div'); sep.className = 'dd-sep';
+  ddp.appendChild(sep);
+  const refresh = document.createElement('div'); refresh.className = 'dd-item';
+  refresh.textContent = 'Refresh...';
+  refresh.onclick = () => { closeMenu(); projectsLoaded=false; fetchProjects(); };
+  ddp.appendChild(refresh);
+}
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+// ══════════════════════════════════════
+//  AUDIO
+// ══════════════════════════════════════
+function beep(freq=800, dur=100) {
+  if (!document.getElementById('enable-sound').checked) return;
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    // Fixed: Modern browsers gesture interaction resume
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.connect(g); g.connect(audioCtx.destination);
+    o.frequency.value = freq; o.type = 'square';
+    g.gain.setValueAtTime(0.05, audioCtx.currentTime);
+    o.start(); setTimeout(() => o.stop(), dur);
+  } catch(e){}
+}
+
+// ══════════════════════════════════════
+//  EXAMPLES
+// ══════════════════════════════════════
+const EXAMPLES = {
+  graphics: `; === RETRO VGA XOR PLASMA ===
+; Draws a math texture to 128x128 VRAM (0xA0000)
+
+  MOV ECX, 655360   ; VRAM start address
+  MOV EBX, 0        ; X coordinate
+  MOV EDX, 0        ; Y coordinate
+
+draw_loop:
+  MOV EAX, EBX
+  XOR EAX, EDX      ; XOR fractal colour
+  MOV [ECX], EAX    ; Write pixel to VRAM
+
+  INC ECX
+  INC EBX
+  CMP EBX, 128
+  JNE skip_y_inc
+  MOV EBX, 0
+  INC EDX
+
+skip_y_inc:
+  CMP EDX, 128
+  JNE draw_loop
+  HLT`,
+
+  fib: `; === FIBONACCI SEQUENCE ===
+  MOV EAX, 1
+  MOV EBX, 1
+  MOV ECX, 15
+
+fib_loop:
+  MOV EDX, EAX
+  ADD EDX, EBX
+  MOV EAX, EBX
+  MOV EBX, EDX
+  MOV [256], EBX
+  DEC ECX
+  CMP ECX, 0
+  JNE fib_loop
+  HLT`,
+
+  hello: `; === HELLO WORLD (INT 0x80) ===
+  MOV EAX, 72   ; 'H'
+  MOV [512], EAX
+  MOV EAX, 4
+  MOV ECX, 512
+  INT 0x80
+
+  MOV EAX, 101  ; 'e'
+  MOV [512], EAX
+  MOV EAX, 4
+  MOV ECX, 512
+  INT 0x80
+
+  MOV EAX, 108  ; 'l'
+  MOV [512], EAX
+  MOV EAX, 4
+  MOV ECX, 512
+  INT 0x80
+
+  MOV EAX, 1
+  INT 0x80`
+};
+
+// ══════════════════════════════════════
+//  ASSEMBLER
+// ══════════════════════════════════════
+function assemble(src) {
+  program = []; labels = {};
+  const lines = src.split('\n');
+  let idx = 0;
+  for (let i = 0; i < lines.length; i++) {
+    let line = lines[i];
+    const ci = line.indexOf(';'); if (ci !== -1) line = line.slice(0,ci);
+    line = line.replace(/^\s*section\s+\.\w+\s*$/i,'').trim();
+    if (!line) continue;
+    const lm = line.match(/^(\w+)\s*:\s*(.*)$/);
+    if (lm) { labels[lm[1].toLowerCase()] = idx; line = lm[2].trim(); if (!line) continue; }
+    const instr = parseLine(line, i+1);
+    if (instr) { instr.instrIdx = idx; instr.srcLine = i+1; program.push(instr); idx++; }
+  }
+  for (const instr of program) {
+    instr.args = instr.args.map(a => {
+      if (typeof a === 'string' && a.startsWith('__label__')) {
+        const n = a.slice(9);
+        if (labels[n] === undefined) throw new Error(`Line ${instr.srcLine}: unknown label "${n}"`);
+        return labels[n];
+      }
+      return a;
+    });
+  }
+}
+function parseLine(line, ln) {
+  if (!line) return null;
+  // Fixed: replace tabs with space to prevent command splitting errors
+  line = line.replace(/\t/g, ' ');
+  const sp = line.indexOf(' ');
+  const op = (sp === -1 ? line : line.slice(0,sp)).toUpperCase();
+  const argStr = sp === -1 ? '' : line.slice(sp+1).trim();
+  const rawArgs = argStr ? splitArgs(argStr) : [];
+  const args = rawArgs.map(a => parseArg(a.trim(), ln));
+  const valid = ['MOV','ADD','SUB','INC','DEC','CMP','JMP','JE','JNE','PUSH','POP','INT','NOP','HLT','AND','OR','XOR'];
+  if (!valid.includes(op)) throw new Error(`Line ${ln}: unknown opcode "${op}"`);
+  return { op, args, raw: line };
+}
+function splitArgs(str) {
+  const r=[]; let d=0, cur='';
+  for (const ch of str) {
+    if (ch==='[') { d++; cur+=ch; }
+    else if (ch===']') { d--; cur+=ch; }
+    else if (ch===',' && d===0) { r.push(cur.trim()); cur=''; }
+    else cur+=ch;
+  }
+  if (cur.trim()) r.push(cur.trim());
+  return r;
+}
+function parseArg(arg, ln) {
+  if (!arg) return null;
+  const up = arg.toUpperCase();
+  if (['EAX','EBX','ECX','EDX','ESP','EIP'].includes(up)) return { type:'reg', name:up };
+  const mm = arg.match(/^\[(.+)\]$/);
+  if (mm) {
+    const inner = mm[1].trim().toUpperCase();
+    if (['EAX','EBX','ECX','EDX','ESP'].includes(inner)) return { type:'mem_reg', reg:inner };
+    const a = parseNum(inner);
+    if (a !== null) return { type:'mem_imm', addr:a };
+    throw new Error(`Line ${ln}: bad memory ref "[${mm[1]}]"`);
+  }
+  const n = parseNum(arg);
+  if (n !== null) return { type:'imm', value:n };
+  if (/^\w+$/.test(arg)) return `__label__${arg.toLowerCase()}`;
+  throw new Error(`Line ${ln}: unrecognised operand "${arg}"`);
+}
+function parseNum(s) {
+  s = s.trim();
+  if (/^0x[0-9a-f]+$/i.test(s)) return parseInt(s,16);
+  if (/^0b[01]+$/i.test(s)) return parseInt(s.slice(2),2);
+  if (/^-?\d+$/.test(s)) return parseInt(s,10);
+  return null;
+}
+
+// ══════════════════════════════════════
+//  EXECUTION ENGINE
+// ══════════════════════════════════════
+function readOp(a) {
+  switch(a.type) {
+    case 'reg': return cpu.regs[a.name];
+    case 'imm': return a.value;
+    case 'mem_reg': return cpu.memory[cpu.regs[a.reg] % MEM_SIZE];
+    case 'mem_imm': return cpu.memory[a.addr % MEM_SIZE];
+    default: throw new Error('bad read operand');
+  }
+}
+function writeOp(a, v) {
+  v = v & 0xFFFFFFFF;
+  switch(a.type) {
+    case 'reg': cpu.regs[a.name] = v; break;
+    case 'mem_reg': cpu.memory[cpu.regs[a.reg] % MEM_SIZE] = v & 0xFF; break;
+    case 'mem_imm': cpu.memory[a.addr % MEM_SIZE] = v & 0xFF; break;
+    default: throw new Error('bad write operand');
+  }
+}
+function setFlags(res, a, b, op) {
+  cpu.flags.ZF = (res === 0) ? 1 : 0;
+  if (op === '+') cpu.flags.CF = (a+b) > 0xFFFFFFFF ? 1 : 0;
+  else if (op === '-') cpu.flags.CF = (a < b) ? 1 : 0;
+}
+function executeStep() {
+  if (cpu.halted) return;
+  if (cpu.regs.EIP >= program.length) {
+    cpu.halted = true;
+    setStatus('HALT: end of program'); beep(400,400); return;
+  }
+  const { op, args } = program[cpu.regs.EIP];
+  prevRegs = { ...cpu.regs };
+  cpu.cycles++;
+  let nextEIP = cpu.regs.EIP + 1;
+  try {
+    switch(op) {
+      case 'MOV': writeOp(args[0], readOp(args[1])); break;
+      case 'ADD': { const a=readOp(args[0]),b=readOp(args[1]),r=(a+b)&0xFFFFFFFF; writeOp(args[0],r); setFlags(r,a,b,'+'); break; }
+      case 'SUB': { const a=readOp(args[0]),b=readOp(args[1]),r=(a-b)&0xFFFFFFFF; writeOp(args[0],r); setFlags(r,a,b,'-'); break; }
+      case 'INC': { const r=(readOp(args[0])+1)&0xFFFFFFFF; writeOp(args[0],r); cpu.flags.ZF=(r===0)?1:0; break; }
+      case 'DEC': { const r=(readOp(args[0])-1)&0xFFFFFFFF; writeOp(args[0],r); cpu.flags.ZF=(r===0)?1:0; break; }
+      // Fixed: AND/OR/XOR operations reset CF flag (standard x86 behavior)
+      case 'AND': { const r=(readOp(args[0])&readOp(args[1]))&0xFFFFFFFF; writeOp(args[0],r); cpu.flags.ZF=(r===0)?1:0; cpu.flags.CF=0; break; }
+      case 'OR':  { const r=(readOp(args[0])|readOp(args[1]))&0xFFFFFFFF; writeOp(args[0],r); cpu.flags.ZF=(r===0)?1:0; cpu.flags.CF=0; break; }
+      case 'XOR': { const r=(readOp(args[0])^readOp(args[1]))&0xFFFFFFFF; writeOp(args[0],r); cpu.flags.ZF=(r===0)?1:0; cpu.flags.CF=0; break; }
+      case 'CMP': { const a=readOp(args[0]),b=readOp(args[1]); setFlags((a-b)&0xFFFFFFFF,a,b,'-'); break; }
+      // Fixed: EIP computation supporting non-label numeric/register/memory jumps
+      case 'JMP': nextEIP = (typeof args[0] === 'number') ? args[0] : readOp(args[0]); break;
+      case 'JE':  if (cpu.flags.ZF===1) nextEIP = (typeof args[0] === 'number') ? args[0] : readOp(args[0]); break;
+      case 'JNE': if (cpu.flags.ZF===0) nextEIP = (typeof args[0] === 'number') ? args[0] : readOp(args[0]); break;
+      case 'PUSH': {
+        if (cpu.regs.ESP<=0) throw new Error('Stack overflow');
+        cpu.memory[cpu.regs.ESP] = readOp(args[0])&0xFF;
+        cpu.regs.ESP--; break;
+      }
+      case 'POP': {
+        if (cpu.regs.ESP>=STACK_BASE) throw new Error('Stack underflow');
+        cpu.regs.ESP++;
+        writeOp(args[0], cpu.memory[cpu.regs.ESP]); break;
+      }
+      case 'INT': {
+        const v = readOp(args[0]);
+        if (v !== 0x80) throw new Error(`INT 0x${(v >>> 0).toString(16)} not implemented`);
+        if (cpu.regs.EAX===4) {
+          const ch = cpu.memory[cpu.regs.ECX % MEM_SIZE];
+          termWrite(ch >= 32 && ch < 127 ? String.fromCharCode(ch) : `\\x${ch.toString(16)}`, 't-green');
+          beep(900,20);
+        } else if (cpu.regs.EAX===1) {
+          cpu.halted = true;
+          termWrite('\n[Process exited]\n', 't-cyan');
+        }
+        break;
+      }
+      case 'NOP': break;
+      // Fixed: UI status logging for explicit HLT
+      case 'HLT': cpu.halted = true; setStatus('HALT: CPU halted'); break;
+    }
+  } catch(e) {
+    cpu.halted = true;
+    setStatus('CPU FAULT: ' + e.message);
+    termWrite(`\n[FAULT] ${e.message}\n`, 't-red');
+    beep(100,600); return;
+  }
+  if (!cpu.halted) cpu.regs.EIP = nextEIP;
+}
+
+// ══════════════════════════════════════
+//  RUN CONTROL
+// ══════════════════════════════════════
+function compileAndReset() {
+  stopRun();
+  document.getElementById('term-out').innerHTML = '';
+  try {
+    assemble(document.getElementById('code-editor').value);
+    termWrite(`[OK] Assembled ${program.length} instructions, ${Object.keys(labels).length} labels.\n`, 't-green');
+    beep(880,120);
+    resetCPU(); setStatus('Compiled — ready'); enableControls(true);
+    document.getElementById('src-status').textContent = `${program.length} instructions`;
+  } catch(e) {
+    termWrite(`[ERROR] ${e.message}\n`, 't-red'); setStatus('Compile error'); beep(120,400);
+    enableControls(false);
+    document.getElementById('src-status').textContent = 'Error: ' + e.message;
+  }
+}
+function resetCPU() {
+  cpu.regs = { EAX:0, EBX:0, ECX:0, EDX:0, ESP:STACK_BASE, EIP:0 };
+  cpu.flags = { ZF:0, CF:0 };
+  cpu.memory.fill(0); cpu.halted=false; cpu.cycles=0; prevRegs={};
+  updateUI();
+}
+function stepExecution() {
+  if (cpu.halted || !program.length) return;
+  executeStep(); beep(600,10); updateUI();
+}
+function runLoop() {
+  if (!cpu.running || cpu.halted) { stopRun(); updateUI(); return; }
+  let steps = simSpeed===100?50000: simSpeed>80?5000: simSpeed>50?500: simSpeed>20?10: 1;
+  for (let i=0;i<steps;i++) { if (cpu.halted) break; executeStep(); if (cpu.cycles>=10000000){cpu.halted=true;termWrite('\n[Auto-halt: 10M cycles]\n','t-yellow');break;} }
+  updateUI();
+  if (!cpu.halted && cpu.running) requestAnimationFrame(runLoop); else stopRun();
+}
+function runExecution() {
+  if (cpu.halted||!program.length) return;
+  cpu.running=true; setStatus('Running...');
+  document.getElementById('btn-run').disabled=true;
+  document.getElementById('btn-pause').disabled=false;
+  beep(1000,150); requestAnimationFrame(runLoop);
+}
+function pauseExecution() { stopRun(); setStatus('Paused'); beep(500,80); }
+function resetExecution() { stopRun(); resetCPU(); setStatus('Reset'); beep(400,150); }
+function stopRun() {
+  cpu.running=false;
+  document.getElementById('btn-run').disabled=false;
+  document.getElementById('btn-pause').disabled=true;
+}
+function updateSpeed(v) {
+  simSpeed=parseInt(v);
+  document.getElementById('speed-label').textContent = simSpeed===100? '10 MHz MAX' : (simSpeed*10)+' Hz';
+}
+function setStatus(msg) {
+  document.getElementById('cpu-status-text').textContent = msg;
+}
+function enableControls(on) {
+  ['btn-step','btn-run','btn-reset'].forEach(id => document.getElementById(id).disabled=!on);
+  document.getElementById('btn-pause').disabled=true;
+}
+
+// ══════════════════════════════════════
+//  VGA RENDER
+// ══════════════════════════════════════
+function renderVGA() {
+  const canvas = document.getElementById('vga-canvas');
+  const ctx = canvas.getContext('2d');
+  const img = ctx.createImageData(128,128);
+  for (let i=0;i<VRAM_SIZE;i++) {
+    const b=cpu.memory[VRAM_START+i];
+    const idx=i*4;
+    img.data[idx]   = ((b>>5)&7)*36;
+    img.data[idx+1] = ((b>>2)&7)*36;
+    img.data[idx+2] = (b&3)*85;
+    img.data[idx+3] = 255;
+  }
+  ctx.putImageData(img,0,0);
+}
+
+// ══════════════════════════════════════
+//  REGISTER DISPLAY
+// ══════════════════════════════════════
+function updateRegisters() {
+  const tbody = document.getElementById('reg-tbody');
+  tbody.innerHTML='';
+  ['EAX','EBX','ECX','EDX','ESP','EIP'].forEach(n => {
+    // Fixed: Unsigned conversion using >>> 0 formatting to prevent negative numbers displaying with a minus sign
+    const v=cpu.regs[n], changed=(prevRegs[n]!==undefined&&prevRegs[n]!==v);
+    const tr=document.createElement('tr');
+    if(changed) tr.className='reg-changed';
+    tr.innerHTML=`<td style="color:#000080;font-weight:bold">${n}</td><td style="text-align:right">0x${(v >>> 0).toString(16).toUpperCase().padStart(8,'0')}</td><td style="text-align:right;color:#333">${v}</td>`;
+    tbody.appendChild(tr);
+  });
+  document.getElementById('flag-zf').textContent=cpu.flags.ZF;
+  document.getElementById('flag-cf').textContent=cpu.flags.CF;
+}
+
+// ══════════════════════════════════════
+//  MEMORY DISPLAY + EDITOR
+// ══════════════════════════════════════
+function updateMemory() {
+  const c = document.getElementById('mem-container');
+  // Fixed: Save scroll offset to prevent jump-back-to-top on refresh
+  const savedScrollTop = c.scrollTop;
+  const savedScrollLeft = c.scrollLeft;
+
+  let html='<table class="hex-table">';
+  for (let r=0;r<16;r++) {
+    const row=memDisplayOffset+(r*16);
+    if (row>=MEM_SIZE) break;
+    html+=`<tr><td class="hex-addr" style="padding-right:6px">${row.toString(16).toUpperCase().padStart(8,'0')}:</td><td>`;
+    let ascii='';
+    for (let c2=0;c2<16;c2++) {
+      const addr=row+c2; if(addr>=MEM_SIZE) break;
+      const b=cpu.memory[addr];
+      const hex=b.toString(16).toUpperCase().padStart(2,'0');
+      let cls='mem-cell';
+      if (addr>=VRAM_START&&addr<VRAM_START+VRAM_SIZE) cls+=' vram';
+      if (addr===cpu.regs.ESP) cls+=' stack-ptr';
+      html+=`<span class="${cls}" data-addr="${addr}" onclick="selectMemCell(this,${addr})">${hex}</span>`;
+      // Fixed: HTML tags escaping in ASCII viewer column (avoid script injection & table breaks)
+      let char = (b>=32&&b<127)?String.fromCharCode(b):'.';
+      if (char === '<') char = '&lt;';
+      else if (char === '>') char = '&gt;';
+      else if (char === '&') char = '&amp;';
+      ascii += char;
+    }
+    html+=`</td><td class="hex-ascii" style="padding-left:8px;letter-spacing:0">${ascii}</td></tr>`;
+  }
+  html+='</table>';
+  c.innerHTML=html;
+
+  // Fixed: Restore scroll offset
+  c.scrollTop = savedScrollTop;
+  c.scrollLeft = savedScrollLeft;
+}
+function selectMemCell(el, addr) {
+  document.querySelectorAll('.mem-cell.selected').forEach(e=>e.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedMemCell = addr;
+  const val = cpu.memory[addr];
+  const newVal = prompt(`Edit byte at 0x${addr.toString(16).toUpperCase()} (current: 0x${val.toString(16).toUpperCase().padStart(2,'0')} = ${val}):\nEnter hex (0xFF) or decimal:`, '0x'+val.toString(16).toUpperCase());
+  if (newVal !== null) {
+    const parsed = parseNum(newVal.trim());
+    if (parsed !== null && parsed >= 0 && parsed <= 255) {
+      cpu.memory[addr] = parsed;
+      document.getElementById('mem-status').textContent = `Wrote 0x${parsed.toString(16).toUpperCase()} to 0x${addr.toString(16).toUpperCase()}`;
+      updateMemory(); renderVGA(); beep(700,50);
+    } else {
+      document.getElementById('mem-status').textContent = 'Invalid value — must be 0-255';
+    }
+  }
+}
+function jumpMemory() {
+  let v=document.getElementById('mem-offset').value.trim();
+  // Fixed: Autocomplete raw hex input into 0x format (e.g. A0000 -> 0xA0000)
+  if (/^[0-9a-fA-F]+$/.test(v) && !/^\d+$/.test(v)) {
+    v = '0x' + v;
+  }
+  const p=parseNum(v);
+  // Fixed: validation checking for negative addresses
+  if(p!==null&&p>=0&&p<MEM_SIZE){memDisplayOffset=p;updateMemory();beep(750,80);}
+}
+function setMemView(m){memViewMode=m;updateMemory();}
+
+// ══════════════════════════════════════
+//  TERMINAL
+// ══════════════════════════════════════
+function termWrite(text, cls) {
+  const t=document.getElementById('term-out');
+  if (cls) {
+    const s=document.createElement('span'); s.className=cls; s.textContent=text; t.appendChild(s);
+  } else {
+    t.appendChild(document.createTextNode(text));
+  }
+  t.scrollTop=t.scrollHeight;
+}
+
+// ══════════════════════════════════════
+//  UI UPDATE
+// ══════════════════════════════════════
+function updateUI() {
+  updateRegisters(); updateMemory(); renderVGA();
+  document.getElementById('cycle-counter').textContent=cpu.cycles;
+  const el=document.getElementById('eip-line');
+  if(!program.length||cpu.regs.EIP>=program.length) {
+    el.textContent='EIP → [end]';
+  } else {
+    const instr=program[cpu.regs.EIP];
+    el.textContent=`EIP[${cpu.regs.EIP}] → line ${instr.srcLine}: ${instr.raw}`;
+  }
+}
+
+// ══════════════════════════════════════
+//  HARDWARE CONFIG / QUAD86EMU
+// ══════════════════════════════════════
+function handleDiskUpload(event) {
+  const file=event.target.files[0]; if(!file) return;
+  const reader=new FileReader();
+  reader.onload=function(e){
+    const raw=new Uint8Array(e.target.result);
+    termWrite(`\n[Quad86Emu] Mounted: "${file.name}" (${raw.length} bytes)\n`,'t-yellow');
+    const off=0x7C00, sz=Math.min(raw.length,MEM_SIZE-off);
+    for(let i=0;i<sz;i++) cpu.memory[off+i]=raw[i];
+    termWrite(`[Quad86Emu] Loaded ${sz} bytes at MBR vector 0x7C00\n`,'t-green');
+    if(raw.length>=512&&raw[510]===0x55&&raw[511]===0xAA){
+      termWrite(`[Quad86Emu] MBR signature 0x55AA found — valid boot sector\n`,'t-green'); beep(700,100);
+    } else {
+      termWrite(`[Quad86Emu] No MBR signature — not a bootable image\n`,'t-red'); beep(200,400);
+    }
+    document.getElementById('btn-decompile-boot').disabled=false;
+    // Fixed: Dynamic updating Command Line text
+    const cpuSelect = document.getElementById('qemu-cpu');
+    const cpuVal = cpuSelect.value.includes('8086') ? '8086' : cpuSelect.value.includes('486') ? '486' : 'pentium';
+    document.getElementById('qemu-cmd').textContent=`quad86emu -m ${(MEM_SIZE/1024/1024)}M -cpu ${cpuVal} -hda ${file.name}`;
+    updateMemory();
+  };
+  reader.readAsArrayBuffer(file);
+}
+function decompileBootSector() {
+  let asm=`; === DECOMPILED MBR BOOT SECTOR (0x7C00) ===\n; Auto-translated binary to simplified x86\n\n  MOV ESP, 1048575\n\n`;
+  const base=0x7C00; let i=0;
+  while(i<256){
+    const b=cpu.memory[base+i], a=base+i;
+    if(b===0x90){asm+='  NOP\n';i++;}
+    else if(b===0xF4){asm+='  HLT\n';i++;}
+    else if(b===0xB8){const v=cpu.memory[a+1]|(cpu.memory[a+2]<<8);asm+=`  MOV EAX, ${v}\n`;i+=3;}
+    else if(b===0xBB){const v=cpu.memory[a+1]|(cpu.memory[a+2]<<8);asm+=`  MOV EBX, ${v}\n`;i+=3;}
+    else if(b===0xB9){const v=cpu.memory[a+1]|(cpu.memory[a+2]<<8);asm+=`  MOV ECX, ${v}\n`;i+=3;}
+    else if(b===0xBA){const v=cpu.memory[a+1]|(cpu.memory[a+2]<<8);asm+=`  MOV EDX, ${v}\n`;i+=3;}
+    else if(b===0xCD&&cpu.memory[a+1]===0x80){asm+='  INT 0x80\n';i+=2;}
+    else if(b===0x40){asm+='  INC EAX\n';i++;}
+    else if(b===0x41){asm+='  INC ECX\n';i++;}
+    else if(b===0x43){asm+='  INC EBX\n';i++;}
+    else if(b===0x48){asm+='  DEC EAX\n';i++;}
+    else if(b===0x50){asm+='  PUSH EAX\n';i++;}
+    else if(b===0x58){asm+='  POP EAX\n';i++;}
+    else{asm+=`  MOV EAX, ${b} ; RAW 0x${b.toString(16).toUpperCase()}\n`;i++;}
+  }
+  document.getElementById('code-editor').value=asm;
+  termWrite(`[Quad86Emu] Decompiled 256 bytes from MBR. Press Compile.\n`,'t-cyan'); beep(800,150);
+}
+function attemptBoot() {
+  termWrite(`\n[Quad86Emu] Attempting boot sequence...\n`,'t-red');
+  beep(200,100); setTimeout(()=>beep(200,100),140); setTimeout(()=>beep(100,400),280);
+  setTimeout(()=>{
+    termWrite(`[Quad86Emu] ACPI bus fault — CPU lacks Paging, Long Mode, SSE2.\n`,'t-yellow');
+    termWrite(`Quad86Emu specs: 14 opcodes, 1MB RAM, 8-bit bus.\n`,'t-yellow');
+    if(!document.getElementById('btn-decompile-boot').disabled) decompileBootSector();
+    else termWrite(`[Quad86Emu] No disk image loaded.\n`,'t-red');
+  },1000);
+}
+
+// ══════════════════════════════════════
+//  LOAD EXAMPLE
+// ══════════════════════════════════════
+function loadExample(name) {
+  document.getElementById('code-editor').value=EXAMPLES[name]||'';
+  focusWin('win-source'); beep(880,80);
+}
+
+// ══════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════
+function init() {
+  document.getElementById('code-editor').value=EXAMPLES.graphics;
+  resetCPU(); enableControls(false);
+  updateTaskbar();
+  termWrite('Quad86Emu v2.0 — x86 Assembler Emulator\n','t-cyan');
+  termWrite('Press [Compile] to load assembly code.\n');
+  // pre-fetch projects silently for the menu
+  setTimeout(fetchProjectsSilent, 500);
+}
+function fetchProjectsSilent() {
+  fetch('https://qlegacy.github.io/projects.json')
+    .then(r => {
+      if (!r.ok) throw new Error();
+      return r.json();
+    })
+    .then(data=>renderProjects(data))
+    .catch(()=>{
+      // Fixed: Load silent fallback so Projects menu isn't stuck displaying "Loading..."
+      renderProjects([
+        {
+          name: "Quad86Emu",
+          description: "x86 assembly emulator with VGA display, register viewer and memory editor running entirely in the browser.",
+          version: "2.0.0",
+          created: "2024-01-15",
+          url: "https://qlegacy.github.io/quad86emu",
+          html: "https://qlegacy.github.io/quad86emu/index.html"
+        },
+        {
+          name: "RetroShell",
+          description: "Retro terminal emulator with BASIC interpreter and classic DOS-style commands.",
+          version: "1.3.2",
+          created: "2023-08-20",
+          url: "https://qlegacy.github.io/retroshell",
+          html: "https://qlegacy.github.io/retroshell/index.html"
+        },
+        {
+          name: "PixelForge",
+          description: "Pixel art editor with palette management, animation timeline and export to GIF/PNG.",
+          version: "0.9.1",
+          created: "2024-03-10",
+          url: "https://qlegacy.github.io/pixelforge",
+          html: "https://qlegacy.github.io/pixelforge/index.html"
+        }
+      ], true);
+    });
+}
+
+// ══════════════════════════════════════
+//  HARDWARE INTEGRATION HANDLERS
+// ══════════════════════════════════════
+// Fixed: RAM size modification event handler
+document.getElementById('qemu-ram').addEventListener('change', function(e) {
+  const newSize = parseInt(e.target.value);
+  if (newSize && newSize !== MEM_SIZE) {
+    MEM_SIZE = newSize;
+    STACK_BASE = newSize - 1;
+    cpu.memory = new Uint8Array(MEM_SIZE);
+    resetCPU();
+    termWrite(`\n[HW] RAM resized to ${(MEM_SIZE / 1024 / 1024)} MB. System reset.\n`, 't-cyan');
+    // Update cmd mockup
+    const diskFile = document.getElementById('disk-file').files[0];
+    const diskName = diskFile ? diskFile.name : '(none)';
+    const cpuVal = document.getElementById('qemu-cpu').value.includes('8086') ? '8086' : document.getElementById('qemu-cpu').value.includes('486') ? '486' : 'pentium';
+    document.getElementById('qemu-cmd').textContent = `quad86emu -m ${(MEM_SIZE/1024/1024)}M -cpu ${cpuVal} -hda ${diskName}`;
+  }
+});
+
+// Fixed: CPU selection change event handler
+document.getElementById('qemu-cpu').addEventListener('change', function(e) {
+  const diskFile = document.getElementById('disk-file').files[0];
+  const diskName = diskFile ? diskFile.name : '(none)';
+  const cpuVal = e.target.value.includes('8086') ? '8086' : e.target.value.includes('486') ? '486' : 'pentium';
+  document.getElementById('qemu-cmd').textContent = `quad86emu -m ${(MEM_SIZE/1024/1024)}M -cpu ${cpuVal} -hda ${diskName}`;
+  termWrite(`\n[HW] CPU model changed to: ${e.target.value}\n`, 't-cyan');
+});
+
+init();
+</script>
+</body>
+</html>
