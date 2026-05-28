@@ -1,0 +1,27 @@
+[
+  {
+    "name": "Radio",
+    "version": "?",
+    "created": "2025-05-05",
+    "description": "QuadLegacy Radio.",
+    "url": "https://github.com/qlegacy/radio",
+    "html": "https://qlegacy.github.io/radio/radio/radio"
+  },
+    {
+    "name": "Hacker Type",
+    "version": "?",
+    "created": "?",
+    "description": "Импортозамещённый hacker type.",
+    "url": "https://github.com/qlegacy.github.io/",
+    "html": "https://qlegacy.github.io/"
+  },
+    {
+    "name": "Space 3D on HTML",
+    "version": "1.0.0",
+    "created": "2026-05-12",
+    "description": "Модель космоса. Имеет планеты, солнце, астероиды.",
+    "url": "https://github.com/qlegacy.github.io",
+    "html": "https://qlegacy.github.io/space.html"
+  }
+  
+]
