@@ -1,0 +1,1265 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>☣️ x86 ULTIMATE TURBO EMULATOR 2000 ☣️</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400;1,700&family=Impact&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-primary: #05020c;
+    --bg-secondary: #130022;
+    --bg-card: #1f0133;
+    --accent-cyan: #00ffff;
+    --accent-green: #39ff14;
+    --accent-magenta: #ff00ff;
+    --accent-yellow: #ffff00;
+    --accent-red: #ff3333;
+    --text-primary: #39ff14;
+    --border-style: 4px double var(--accent-green);
+  }
+  
+  * { 
+    box-sizing: border-box; 
+    margin: 0; 
+    padding: 0; 
+    font-family: 'Courier Prime', 'Courier New', monospace !important;
+  }
+
+  body {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    min-height: 100vh;
+    padding: 10px;
+    background-image: radial-gradient(rgba(25, 0, 50, 0.8) 15%, transparent 16%),
+                      radial-gradient(rgba(0, 255, 0, 0.03) 15%, transparent 20%);
+    background-size: 30px 30px;
+    text-shadow: 0 0 2px rgba(57, 255, 20, 0.5);
+  }
+
+  /* Эффект ЭЛТ-монитора и помех */
+  body::after {
+    content: " ";
+    display: block;
+    position: fixed;
+    top: 0; left: 0; bottom: 0; right: 0;
+    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+    aspect-ratio: auto;
+    background-size: 100% 4px, 3px 100%;
+    z-index: 99999;
+    pointer-events: none;
+  }
+
+  /* Мигающий текст */
+  .blink {
+    animation: blinker 0.8s linear infinite;
+  }
+  @keyframes blinker {
+    50% { opacity: 0; }
+  }
+
+  /* Безумный ретро заголовок */
+  .mega-title {
+    font-family: 'Impact', sans-serif !important;
+    font-size: 2.8rem;
+    color: var(--accent-magenta);
+    text-shadow: 4px 4px 0px var(--accent-yellow), -3px -3px 0px var(--accent-cyan);
+    letter-spacing: 2px;
+    text-align: center;
+    border: var(--border-style);
+    background: #000;
+    padding: 10px;
+    margin-bottom: 12px;
+    animation: jitter 0.2s infinite alternate;
+  }
+
+  @keyframes jitter {
+    0% { transform: skew(0.5deg); }
+    100% { transform: skew(-0.5deg); }
+  }
+
+  .panel-brutal {
+    background: var(--bg-card);
+    border: 4px double var(--accent-green);
+    box-shadow: 5px 5px 0px var(--accent-magenta);
+    margin-bottom: 12px;
+    padding: 10px;
+    position: relative;
+  }
+
+  .panel-brutal-title {
+    background: var(--accent-green);
+    color: #000;
+    font-weight: bold;
+    font-size: 0.95rem;
+    padding: 2px 8px;
+    margin: -10px -10px 10px -10px;
+    text-transform: uppercase;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  /* Редактор */
+  #code-editor {
+    width: 100%;
+    height: 350px;
+    background: #000;
+    color: var(--accent-yellow);
+    font-size: 0.9rem;
+    border: 2px solid var(--accent-magenta);
+    padding: 8px;
+    resize: none;
+    outline: none;
+    line-height: 1.3;
+  }
+  #code-editor:focus {
+    box-shadow: 0 0 10px var(--accent-magenta);
+  }
+
+  /* Кнопки */
+  .btn-brutal {
+    font-weight: bold;
+    font-size: 0.8rem;
+    padding: 6px 12px;
+    border: 3px solid;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.1s;
+    background: #000;
+  }
+  .btn-green { border-color: var(--accent-green); color: var(--accent-green); }
+  .btn-green:hover { background: var(--accent-green); color: #000; }
+  .btn-magenta { border-color: var(--accent-magenta); color: var(--accent-magenta); }
+  .btn-magenta:hover { background: var(--accent-magenta); color: #000; }
+  .btn-yellow { border-color: var(--accent-yellow); color: var(--accent-yellow); }
+  .btn-yellow:hover { background: var(--accent-yellow); color: #000; }
+  .btn-cyan { border-color: var(--accent-cyan); color: var(--accent-cyan); }
+  .btn-cyan:hover { background: var(--accent-cyan); color: #000; }
+  .btn-red { border-color: var(--accent-red); color: var(--accent-red); }
+  .btn-red:hover { background: var(--accent-red); color: #000; }
+  .btn-brutal:disabled { opacity: 0.2; cursor: not-allowed; }
+
+  /* Корпус ЭЛТ Телевизора для Дисплея */
+  .crt-case {
+    background: #2d1b30;
+    border: 12px solid #4a2e50;
+    border-radius: 16px;
+    padding: 12px;
+    box-shadow: 10px 10px 0px #000;
+  }
+  .crt-screen-container {
+    background: #000;
+    border: 4px solid #1a1020;
+    border-radius: 8px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* Терминал */
+  #terminal-output {
+    background: #000;
+    border: 2px solid var(--accent-cyan);
+    font-size: 0.85rem;
+    padding: 8px;
+    height: 140px;
+    overflow-y: auto;
+    color: var(--accent-cyan);
+    line-height: 1.4;
+  }
+
+  /* Слайдеры */
+  input[type=range] {
+    -webkit-appearance: none;
+    width: 100%;
+    background: #300;
+    border: 2px solid var(--accent-magenta);
+    height: 8px;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    background: var(--accent-yellow);
+    border: 2px solid #000;
+    cursor: pointer;
+  }
+
+  /* Таблица регистров */
+  .reg-row-changed {
+    background: rgba(255, 0, 255, 0.3) !important;
+  }
+  .reg-badge {
+    font-size: 1.1rem;
+    font-weight: bold;
+  }
+</style>
+</head>
+<body onload="initEmulator()">
+
+  <!-- SHOCK WARNING HEADER BAR -->
+  <div style="background:var(--accent-yellow);color:#000;font-weight:bold;text-align:center;font-size:0.75rem;padding:3px;border:3px dashed #000;margin-bottom:8px">
+    ☣️ RADIATION HIGH VOLTAGE x86 EMULATOR · ULTRA SPEED ENABLED · CORE TEMP: 104°C (STABLE) ☣️
+  </div>
+
+  <!-- MAIN TITLE -->
+  <h1 class="mega-title">X86 MEGADRIVE TURBO-CPU v2.00</h1>
+
+  <!-- MAIN LAYOUT -->
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+
+    <!-- LEFT BAR (COL 4) - SOURCE CODE & EXAMPLES -->
+    <div class="lg:col-span-4 flex flex-col gap-2">
+      <div class="panel-brutal">
+        <div class="panel-brutal-title">
+          <span>📁 ASSEMBLY SOURCE CODE</span>
+          <span style="color:#000;font-size:0.7rem" class="blink">EDIT MODE</span>
+        </div>
+        <div style="background:#000;padding:4px;border-bottom:2px solid var(--accent-magenta);color:var(--accent-yellow);font-size:0.75rem;margin-bottom:8px">
+          EIP INTERPRETER → <span id="eip-line">EIP: 0x00</span>
+        </div>
+        <textarea id="code-editor" spellcheck="false"></textarea>
+        
+        <div class="flex flex-wrap gap-2 mt-2">
+          <button class="btn-brutal btn-yellow flex-1" onclick="compileAndReset()">⚡ COMPILE</button>
+          <button class="btn-brutal btn-magenta" onclick="loadExample('graphics')">🎨 EX: VGA DEMO</button>
+          <button class="btn-brutal btn-magenta" onclick="loadExample('fib')">🔢 EX: FIB</button>
+        </div>
+      </div>
+
+      <!-- QEMU CONFIGURATION PANEL -->
+      <div class="panel-brutal" style="border-color:var(--accent-magenta);box-shadow:5px 5px 0px var(--accent-yellow)">
+        <div class="panel-brutal-title" style="background:var(--accent-magenta)">
+          <span>📀 QEMU HARDWARE PRO CONFIG</span>
+        </div>
+        <div class="grid grid-cols-2 gap-2 text-[0.75rem] mb-2">
+          <div>
+            <label class="block text-white">RAM SIZE (-m):</label>
+            <select id="qemu-ram" class="w-full bg-black text-white border border-green-500 p-1">
+              <option value="1048576">1 MB (DEFAULT)</option>
+              <option value="16777216">16 MB (LEGACY)</option>
+              <option value="536870912">512 MB (WIN7 REQ!)</option>
+              <option value="2073741824">2 GB (SMOOTH)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-white">CPU CORE TYPE:</label>
+            <select id="qemu-cpu" class="w-full bg-black text-white border border-green-500 p-1">
+              <option>Pentium III (Coppermine)</option>
+              <option>Intel Core i7 (Haswell)</option>
+              <option>AMD Threadripper 3990X</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="text-[0.75rem] mb-2">
+          <label class="block text-white">💿 BOOT DRIVE (ISO/IMG):</label>
+          <input type="file" id="disk-file" onchange="handleDiskUpload(event)" class="w-full bg-black text-green-500 text-xs border border-green-500 p-1">
+        </div>
+
+        <div class="text-[0.65rem] bg-black p-2 border border-red-500 mb-2">
+          <span class="text-yellow-400">QEMU RUN COMMAND CONSTRUCTED:</span><br>
+          <code id="qemu-cmd" class="text-cyan-400">qemu-system-i386 -m 1M -cpu pentium3 -soundhw pcspk -hda win7.iso</code>
+        </div>
+
+        <div class="flex gap-2">
+          <button id="btn-decompile-boot" class="btn-brutal btn-cyan w-full" onclick="decompileBootSector()" disabled>
+            🔌 DECOMPILE BOOTSECTOR
+          </button>
+          <button class="btn-brutal btn-red" onclick="attemptBootWin7()">
+            🔥 BOOT WIN7
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- CENTER BAR (COL 4) - CONTROLS & DISPLAY -->
+    <div class="lg:col-span-4 flex flex-col gap-2">
+      <!-- CRT GRAPHICS MONITOR -->
+      <div class="crt-case">
+        <div class="panel-brutal-title" style="background:#4a2e50;color:#ff00ff;margin:-12px -12px 12px -12px;border-bottom:2px solid #ff00ff">
+          <span>📺 VGA DISPLAY [128x128]</span>
+          <span style="color:#00ffff" class="blink">CRT ON</span>
+        </div>
+        <div class="crt-screen-container">
+          <!-- 128x128 Pixel Canvas Upscaled -->
+          <canvas id="vga-screen" width="128" height="128" style="width: 100%; height: 260px; image-rendering: pixelated; background: #000;"></canvas>
+          <!-- Scanline overlay -->
+          <div style="position:absolute;top:0;left:0;width:100%;height:100%;background:linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.4) 50%);background-size:100% 6px;pointer-events:none"></div>
+        </div>
+        <div class="text-center text-[0.65rem] text-yellow-500 mt-2 font-bold uppercase">
+          🚨 Warning: Radial emissions active. Avoid prolonged viewing. 🚨
+        </div>
+      </div>
+
+      <!-- SIMULATOR SPEED & EXECUTION CONTROLS -->
+      <div class="panel-brutal" style="border-color:var(--accent-yellow);box-shadow:5px 5px 0px var(--accent-cyan)">
+        <div class="panel-brutal-title" style="background:var(--accent-yellow);color:#000">
+          <span>⚙️ SYSTEM CHIPSET CONTROL</span>
+        </div>
+        
+        <div class="flex flex-wrap gap-2 mb-3">
+          <button id="btn-step" class="btn-brutal btn-green flex-1" onclick="stepExecution()" disabled>⊳ STEP</button>
+          <button id="btn-run" class="btn-brutal btn-green flex-1" onclick="runExecution()" disabled>▶ RUN</button>
+          <button id="btn-pause" class="btn-brutal btn-yellow flex-1" onclick="pauseExecution()" disabled>⏸ PAUSE</button>
+          <button id="btn-reset" class="btn-brutal btn-red flex-1" onclick="resetExecution()" disabled>↺ RESET</button>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <div class="text-[0.7rem] text-white">🚀 SPEED GENERATOR:</div>
+            <input type="range" id="speed-slider" min="1" max="100" value="50" oninput="updateSpeed(this.value)">
+            <div id="speed-label" class="text-cyan-400 font-bold text-xs mt-1">50 Hz</div>
+          </div>
+          <div class="text-right">
+            <div class="text-[0.7rem] text-white">CYCLE BURST COUNTER:</div>
+            <div id="cycle-counter" class="text-2xl font-bold text-magenta-500 text-yellow-400">0</div>
+          </div>
+        </div>
+
+        <!-- PC SPEAKER SWITCH -->
+        <div class="border-t border-dotted border-green-500 mt-2 pt-2 flex justify-between items-center text-xs">
+          <span>🔊 PC SPEAKER SYNTHESIZER:</span>
+          <label class="inline-flex items-center cursor-pointer">
+            <input type="checkbox" id="enable-sound" checked class="sr-only peer">
+            <div class="w-11 h-6 bg-red-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600 relative"></div>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT BAR (COL 4) - REGISTERS & MEMORY DUMP -->
+    <div class="lg:col-span-4 flex flex-col gap-2">
+      <!-- REGISTER MATRIX -->
+      <div class="panel-brutal" style="border-color:var(--accent-cyan);box-shadow:5px 5px 0px var(--accent-magenta)">
+        <div class="panel-brutal-title" style="background:var(--accent-cyan);color:#000">
+          <span>🎛️ CPU REGISTERS GPR MATRIX</span>
+        </div>
+        <table class="w-full text-xs">
+          <tbody id="reg-tbody">
+            <!-- Populated via JavaScript -->
+          </tbody>
+        </table>
+        
+        <!-- FLAGS -->
+        <div class="mt-3 border-t border-green-500 pt-2 flex gap-4 justify-around">
+          <div>ZF (ZERO FLAG): <span id="flag-zf" class="px-2 border border-green-500 bg-black">0</span></div>
+          <div>CF (CARRY FLAG): <span id="flag-cf" class="px-2 border border-green-500 bg-black">0</span></div>
+        </div>
+      </div>
+
+      <!-- MEMORY RAM VIEWER -->
+      <div class="panel-brutal" style="flex:1">
+        <div class="panel-brutal-title">
+          <span>💾 VIRTUAL MEMORY HEX DUMP</span>
+        </div>
+        
+        <!-- Offset Jump Input -->
+        <div class="flex gap-2 items-center text-xs mb-2">
+          <span>VIEW START ADDR:</span>
+          <input type="text" id="mem-offset" value="0xA0000" class="bg-black text-green-500 border border-green-500 p-1 w-24 uppercase font-bold text-center">
+          <button class="btn-brutal btn-green py-0.5 text-xs" onclick="jumpMemory()">JUMP</button>
+        </div>
+
+        <div id="mem-container" class="bg-black p-2 overflow-y-auto max-h-[160px] text-[0.65rem] leading-none border border-green-500">
+          <!-- Hex dump is drawn here -->
+        </div>
+
+        <div class="flex gap-2 mt-2">
+          <button class="btn-brutal btn-green text-xs flex-1" onclick="setMemView('hex')">HEX</button>
+          <button class="btn-brutal btn-green text-xs flex-1" onclick="setMemView('dec')">DEC</button>
+          <button class="btn-brutal btn-green text-xs flex-1" onclick="setMemView('ascii')">ASCII</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- BOTTOM PANEL - TERMINAL INT 0x80 -->
+  <div class="panel-brutal mt-2" style="border-color:var(--accent-cyan);box-shadow:5px 5px 0px var(--accent-green)">
+    <div class="panel-brutal-title" style="background:var(--accent-cyan);color:#000">
+      <span>💾 TELETYPE TERMINAL & DIAGNOSTICS (INT 0x80 / COM1)</span>
+    </div>
+    <div id="terminal-output"></div>
+  </div>
+
+  <!-- STATUS FOOTER -->
+  <div style="background:#000;border:3px double var(--accent-green);padding:4px;font-size:0.7rem;display:flex;justify-content:space-between;color:var(--accent-magenta)">
+    <span>STATUS: <span id="status-text" class="text-green-500 blink">SYSTEM READY</span></span>
+    <span>MEM ADDR MAP: 0x00000000 - 0x00100000 (1MB ALLOCATED)</span>
+    <span>EMULATION IPS: ~950 KHZ UNLEASHED</span>
+  </div>
+
+<script>
+// ─── КОНСТАНТЫ ────────────────────────────────────────────────────
+const MEM_SIZE       = 1048576; // 1 Мегабайт RAM
+const STACK_BASE     = 1048575; // Дно стека (верхний предел 1МБ)
+const VRAM_START     = 655360;  // Видеопамять 0xA0000
+const VRAM_SIZE      = 16384;   // 128x128 пикселей
+
+// ─── СОСТОЯНИЕ ПРОЦЕССОРА ─────────────────────────────────────────
+let cpu = {
+  regs: { EAX:0, EBX:0, ECX:0, EDX:0, ESP:STACK_BASE, EIP:0 },
+  flags: { ZF:0, CF:0 },
+  memory: new Uint8Array(MEM_SIZE),
+  halted: false,
+  running: false,
+  cycles: 0
+};
+
+// ─── СВЯЗАННЫЕ СТРУКТУРЫ ДАННЫХ ───────────────────────────────────
+let program = [];      
+let labels  = {};      
+let codeSize = 0;      
+let runInterval  = null;
+let simSpeed     = 50;   
+let memViewMode  = 'hex';
+let prevRegs     = {};   
+let memDisplayOffset = VRAM_START; // Начинаем просмотр с видеопамяти по умолчанию
+let audioCtx = null;
+
+// ─── ЗВУКОВОЙ ДИНАМИК RETRO PC SPEAKER ───────────────────────────
+function beep(freq = 800, duration = 100) {
+  if (!document.getElementById('enable-sound').checked) return;
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.frequency.value = freq;
+    osc.type = 'square'; // Ретро прямоугольный сигнал
+    gain.gain.setValueAtTime(0.04, audioCtx.currentTime);
+    osc.start();
+    setTimeout(() => { osc.stop(); }, duration);
+  } catch (e) {}
+}
+
+// ─── ПРИМЕРЫ ПРОГРАММ ─────────────────────────────────────────────
+const EXAMPLES = {
+  graphics: `; === RETRO CHIP VGA SCREEN PLASMA ===
+; Рисует красивый XOR-фрактал на экране 128x128
+; Видеопамять (VRAM) проецируется на 0xA0000 (655360)
+
+  MOV ECX, 655360   ; Адрес начала VRAM
+  MOV EBX, 0        ; Координата X
+  MOV EDX, 0        ; Координата Y
+
+draw_loop:
+  MOV EAX, EBX
+  XOR EAX, EDX      ; Генерация математической текстуры
+  MOV [ECX], EAX    ; Запись пикселя в VRAM
+
+  INC ECX           ; Сдвигаем указатель памяти
+  INC EBX           ; X++
+  CMP EBX, 128      ; Проверка границы по ширине
+  JNE skip_y_inc
+  MOV EBX, 0        ; Обнуляем X
+  INC EDX           ; Y++
+
+skip_y_inc:
+  CMP EDX, 128      ; Отрисовали все 128 строк?
+  JNE draw_loop
+
+  HLT               ; Стоп выполнения`,
+
+  fib: `; === CHIPSET PERFORMANCE FIBONACCI ===
+  MOV EAX, 1
+  MOV EBX, 1
+  MOV ECX, 15
+
+fib_loop:
+  MOV EDX, EAX
+  ADD EDX, EBX
+  MOV EAX, EBX
+  MOV EBX, EDX
+  MOV [256], EBX    ; Сохраняем последнее число
+  DEC ECX
+  CMP ECX, 0
+  JNE fib_loop
+  HLT`
+};
+
+// ═══════════════════════════════════════════════════════════════════
+//   ПАРСЕР И КОМПИЛЯТОР
+// ═══════════════════════════════════════════════════════════════════
+
+function assemble(sourceCode) {
+  program = [];
+  labels  = {};
+  codeSize = 0;
+
+  const lines = sourceCode.split('\n');
+  let instrIdx = 0;
+
+  for (let i = 0; i < lines.length; i++) {
+    let line = lines[i];
+    const commentIdx = line.indexOf(';');
+    if (commentIdx !== -1) line = line.substring(0, commentIdx);
+    line = line.replace(/^\s*section\s+\.\w+\s*$/i, '').trim();
+    if (line === '') continue;
+
+    const labelMatch = line.match(/^(\w+)\s*:\s*(.*)$/);
+    if (labelMatch) {
+      const labelName = labelMatch[1].toLowerCase();
+      labels[labelName] = instrIdx;
+      line = labelMatch[2].trim();
+      if (line === '') continue;
+    }
+
+    const instr = parseLine(line.trim(), i + 1);
+    if (instr) {
+      instr.instrIdx = instrIdx;
+      instr.srcLine  = i + 1;
+      program.push(instr);
+      instrIdx++;
+    }
+  }
+
+  for (const instr of program) {
+    for (let k = 0; k < instr.args.length; k++) {
+      const arg = instr.args[k];
+      if (typeof arg === 'string' && arg.startsWith('__label__')) {
+        const lname = arg.replace('__label__', '');
+        if (labels[lname] === undefined) {
+          throw new Error(`Строка ${instr.srcLine}: неопознанная метка перехода "${lname}"`);
+        }
+        instr.args[k] = labels[lname];
+      }
+    }
+  }
+  codeSize = program.length;
+  return program;
+}
+
+function parseLine(line, lineNum) {
+  if (!line) return null;
+  const spaceIdx = line.indexOf(' ');
+  let op, argStr;
+
+  if (spaceIdx === -1) {
+    op = line.toUpperCase();
+    argStr = '';
+  } else {
+    op = line.substring(0, spaceIdx).toUpperCase();
+    argStr = line.substring(spaceIdx + 1).trim();
+  }
+
+  const rawArgs = argStr ? splitArgs(argStr) : [];
+  const args = rawArgs.map(a => parseArg(a.trim(), lineNum));
+
+  const validOps = ['MOV','ADD','SUB','INC','DEC','CMP','JMP','JE','JNE','PUSH','POP','INT','NOP','HLT','AND','OR','XOR'];
+  if (!validOps.includes(op)) {
+    throw new Error(`Строка ${lineNum}: Ублюдский синтаксис! Неизвестный код операции "${op}"`);
+  }
+
+  return { op, args, raw: line };
+}
+
+function splitArgs(str) {
+  const result = [];
+  let depth = 0, current = '';
+  for (const ch of str) {
+    if (ch === '[') { depth++; current += ch; }
+    else if (ch === ']') { depth--; current += ch; }
+    else if (ch === ',' && depth === 0) {
+      result.push(current.trim());
+      current = '';
+    } else {
+      current += ch;
+    }
+  }
+  if (current.trim()) result.push(current.trim());
+  return result;
+}
+
+function parseArg(arg, lineNum) {
+  if (!arg) return null;
+  const upper = arg.toUpperCase();
+
+  if (['EAX','EBX','ECX','EDX','ESP','EIP'].includes(upper)) {
+    return { type: 'reg', name: upper };
+  }
+
+  const memMatch = arg.match(/^\[(.+)\]$/);
+  if (memMatch) {
+    const inner = memMatch[1].trim().toUpperCase();
+    if (['EAX','EBX','ECX','EDX','ESP'].includes(inner)) {
+      return { type: 'mem_reg', reg: inner };
+    }
+    const addr = parseNum(inner);
+    if (addr !== null) {
+      return { type: 'mem_imm', addr };
+    }
+    throw new Error(`Строка ${lineNum}: Повреждение таблицы сегментов в "[${memMatch[1]}]"`);
+  }
+
+  const num = parseNum(arg);
+  if (num !== null) {
+    return { type: 'imm', value: num };
+  }
+
+  if (/^\w+$/.test(arg)) {
+    return `__label__${arg.toLowerCase()}`;
+  }
+  throw new Error(`Строка ${lineNum}: Нераспознаваемый операнд "${arg}"`);
+}
+
+function parseNum(str) {
+  str = str.trim();
+  if (/^0x[0-9a-f]+$/i.test(str)) return parseInt(str, 16);
+  if (/^0b[01]+$/i.test(str))      return parseInt(str.slice(2), 2);
+  if (/^-?\d+$/.test(str))          return parseInt(str, 10);
+  return null;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//   ИСПОЛНИТЕЛЬНОЕ ЯДРО (EXECUTION ENGINE)
+// ═══════════════════════════════════════════════════════════════════
+
+function readOperand(arg) {
+  if (!arg) throw new Error('Операнд отсутствует!');
+  switch (arg.type) {
+    case 'reg':     return cpu.regs[arg.name];
+    case 'imm':     return arg.value;
+    case 'mem_reg': {
+      const addr = cpu.regs[arg.reg] % MEM_SIZE;
+      return cpu.memory[addr];
+    }
+    case 'mem_imm': {
+      const addr = arg.addr % MEM_SIZE;
+      return cpu.memory[addr];
+    }
+    default:
+      throw new Error('Критический сбой дешифратора адреса');
+  }
+}
+
+function writeOperand(arg, value) {
+  if (!arg) throw new Error('Приёмник данных неопределён!');
+  value = value & 0xFFFFFFFF;
+  switch (arg.type) {
+    case 'reg':
+      cpu.regs[arg.name] = value;
+      break;
+    case 'mem_reg': {
+      const addr = cpu.regs[arg.reg] % MEM_SIZE;
+      cpu.memory[addr] = value & 0xFF;
+      break;
+    }
+    case 'mem_imm': {
+      const addr = arg.addr % MEM_SIZE;
+      cpu.memory[addr] = value & 0xFF;
+      break;
+    }
+    default:
+      throw new Error('Запрещенный тип перезаписи операнда');
+  }
+}
+
+function updateFlags(result, a, b, op) {
+  cpu.flags.ZF = (result === 0) ? 1 : 0;
+  if (op === '+') {
+    cpu.flags.CF = (a + b) > 0xFFFFFFFF ? 1 : 0;
+  } else if (op === '-') {
+    cpu.flags.CF = (a < b) ? 1 : 0;
+  }
+}
+
+function executeStep() {
+  if (cpu.halted) return null;
+
+  if (cpu.regs.EIP >= program.length) {
+    cpu.halted = true;
+    setStatus('halted', 'HALT: КРАХ ПРОЦЕССА (КОНЕЦ ВЫПОЛНЕНИЯ)');
+    beep(400, 400);
+    return null;
+  }
+
+  const instr = program[cpu.regs.EIP];
+  const { op, args } = instr;
+  let desc = `[${String(cpu.regs.EIP).padStart(4)}] ${op}`;
+
+  prevRegs = { ...cpu.regs };
+  cpu.cycles++;
+  let nextEIP = cpu.regs.EIP + 1;
+
+  try {
+    switch (op) {
+      case 'MOV': {
+        const val = readOperand(args[1]);
+        writeOperand(args[0], val);
+        break;
+      }
+      case 'ADD': {
+        const a = readOperand(args[0]);
+        const b = readOperand(args[1]);
+        const res = (a + b) & 0xFFFFFFFF;
+        writeOperand(args[0], res);
+        updateFlags(res, a, b, '+');
+        break;
+      }
+      case 'SUB': {
+        const a = readOperand(args[0]);
+        const b = readOperand(args[1]);
+        const res = (a - b) & 0xFFFFFFFF;
+        writeOperand(args[0], res);
+        updateFlags(res, a, b, '-');
+        break;
+      }
+      case 'INC': {
+        const a = readOperand(args[0]);
+        const res = (a + 1) & 0xFFFFFFFF;
+        writeOperand(args[0], res);
+        cpu.flags.ZF = (res === 0) ? 1 : 0;
+        break;
+      }
+      case 'DEC': {
+        const a = readOperand(args[0]);
+        const res = (a - 1) & 0xFFFFFFFF;
+        writeOperand(args[0], res);
+        cpu.flags.ZF = (res === 0) ? 1 : 0;
+        break;
+      }
+      case 'AND': {
+        const a = readOperand(args[0]);
+        const b = readOperand(args[1]);
+        const res = (a & b) & 0xFFFFFFFF;
+        writeOperand(args[0], res);
+        cpu.flags.ZF = (res === 0) ? 1 : 0;
+        break;
+      }
+      case 'OR': {
+        const a = readOperand(args[0]);
+        const b = readOperand(args[1]);
+        const res = (a | b) & 0xFFFFFFFF;
+        writeOperand(args[0], res);
+        cpu.flags.ZF = (res === 0) ? 1 : 0;
+        break;
+      }
+      case 'XOR': {
+        const a = readOperand(args[0]);
+        const b = readOperand(args[1]);
+        const res = (a ^ b) & 0xFFFFFFFF;
+        writeOperand(args[0], res);
+        cpu.flags.ZF = (res === 0) ? 1 : 0;
+        break;
+      }
+      case 'CMP': {
+        const a = readOperand(args[0]);
+        const b = readOperand(args[1]);
+        const res = (a - b) & 0xFFFFFFFF;
+        updateFlags(res, a, b, '-');
+        break;
+      }
+      case 'JMP': {
+        nextEIP = args[0];
+        break;
+      }
+      case 'JE': {
+        if (cpu.flags.ZF === 1) nextEIP = args[0];
+        break;
+      }
+      case 'JNE': {
+        if (cpu.flags.ZF === 0) nextEIP = args[0];
+        break;
+      }
+      case 'PUSH': {
+        const val = readOperand(args[0]);
+        if (cpu.regs.ESP <= 0) throw new Error('ПЕРЕПОЛНЕНИЕ СТЕКА (STACK OVERFLOW)');
+        cpu.memory[cpu.regs.ESP] = val & 0xFF;
+        cpu.regs.ESP--;
+        break;
+      }
+      case 'POP': {
+        if (cpu.regs.ESP >= STACK_BASE) throw new Error('СТЕК КАТАСТРОФИЧЕСКИ ПУСТ');
+        cpu.regs.ESP++;
+        const val = cpu.memory[cpu.regs.ESP];
+        writeOperand(args[0], val);
+        break;
+      }
+      case 'INT': {
+        const vec = readOperand(args[0]);
+        if (vec !== 0x80) throw new Error(`Прерывание INT 0x${vec.toString(16)} не распаяно на материнской плате`);
+        if (cpu.regs.EAX === 4) {
+          const addr = cpu.regs.ECX % MEM_SIZE;
+          const charCode = cpu.memory[addr];
+          const ch = charCode >= 32 && charCode < 127 ? String.fromCharCode(charCode) : `\\x${charCode.toString(16)}`;
+          terminalWrite(ch, false);
+          beep(900, 30);
+        } else if (cpu.regs.EAX === 1) {
+          cpu.halted = true;
+          terminalWrite('\n[ВЫХОД ИЗ ПРОЦЕССА ВЫЗВАЛ СИСТЕМНЫЙ СИГНАЛ]\n', true, 'text-red-500');
+          beep(300, 200);
+        }
+        break;
+      }
+      case 'NOP':
+        break;
+      case 'HLT':
+        cpu.halted = true;
+        break;
+      default:
+        throw new Error(`Инструкция ${op} недопустима в данном режиме работы процессора!`);
+    }
+  } catch (err) {
+    cpu.halted = true;
+    setStatus('error', `🔥 СБОЙ CPU: ${err.message}`);
+    terminalWrite(`\n[CRITICAL HARDWARE ERROR] ${err.message}\n`, true, 'text-red-500');
+    beep(100, 800);
+    return null;
+  }
+
+  if (!cpu.halted) {
+    cpu.regs.EIP = nextEIP;
+  }
+  return desc;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//   УПРАВЛЕНИЕ И СКОРОСТЬ
+// ═══════════════════════════════════════════════════════════════════
+
+function compileAndReset() {
+  stopRun();
+  document.getElementById('terminal-output').innerHTML = '';
+  
+  const src = document.getElementById('code-editor').value;
+  try {
+    assemble(src);
+    terminalWrite(`[COMPILER] СБОРКА УСПЕШНА: Собрано ${program.length} инструкций. Метки: ${Object.keys(labels).length}\n`, true, 'text-green-400');
+    beep(880, 150);
+    resetCPU();
+    setStatus('idle', 'Инициализация чипсета завершена');
+    enableControls(true);
+  } catch (err) {
+    terminalWrite(`[ОШИБКА КОМПИЛЯТОРА] ${err.message}\n`, true, 'text-red-500');
+    setStatus('error', 'Ассемблер заблокировал запуск');
+    beep(120, 500);
+    enableControls(false);
+  }
+}
+
+function resetCPU() {
+  cpu.regs = { EAX:0, EBX:0, ECX:0, EDX:0, ESP:STACK_BASE, EIP:0 };
+  cpu.flags = { ZF:0, CF:0 };
+  cpu.memory.fill(0); // Очистка ОЗУ
+  cpu.halted = false;
+  cpu.cycles = 0;
+  prevRegs = {};
+  updateUI();
+}
+
+function stepExecution() {
+  if (cpu.halted || program.length === 0) return;
+  executeStep();
+  beep(600, 15);
+  updateUI();
+}
+
+function runLoop() {
+  if (!cpu.running || cpu.halted) {
+    stopRun();
+    updateUI();
+    return;
+  }
+
+  // РАСЧЁТ СКОРОСТИ СИМУЛЯЦИИ:
+  // Если ползунок сдвинут на максимум (100) — включается режим UNLEASHED (50000 инструкций за раз)
+  let stepsPerFrame = 1;
+  if (simSpeed === 100) {
+    stepsPerFrame = 50000;
+  } else if (simSpeed > 80) {
+    stepsPerFrame = 5000;
+  } else if (simSpeed > 50) {
+    stepsPerFrame = 500;
+  } else if (simSpeed > 20) {
+    stepsPerFrame = 10;
+  } else {
+    stepsPerFrame = 1;
+  }
+
+  let limitCycles = 10000000; // Предохранитель от зависания браузера
+  for (let i = 0; i < stepsPerFrame; i++) {
+    if (cpu.halted) break;
+    executeStep();
+    if (cpu.cycles >= limitCycles) {
+      cpu.halted = true;
+      terminalWrite(`\n[WARNING] Автоматическое гашение реактора: Пройдено 10M тактов.\n`, true, 'text-yellow-500');
+      break;
+    }
+  }
+
+  updateUI();
+
+  if (!cpu.halted && cpu.running) {
+    requestAnimationFrame(runLoop);
+  } else {
+    stopRun();
+  }
+}
+
+function runExecution() {
+  if (cpu.halted || program.length === 0) return;
+  cpu.running = true;
+  setStatus('running', 'СИСТЕМА РАЗОГНАНА...');
+  document.getElementById('btn-run').disabled   = true;
+  document.getElementById('btn-pause').disabled = false;
+  
+  beep(1000, 200);
+  requestAnimationFrame(runLoop);
+}
+
+function pauseExecution() {
+  stopRun();
+  setStatus('idle', 'Выполнение приостановлено');
+  beep(500, 100);
+}
+
+function resetExecution() {
+  stopRun();
+  resetCPU();
+  setStatus('idle', 'Плата перезагружена по аппаратному триггеру');
+  beep(400, 200);
+}
+
+function stopRun() {
+  cpu.running = false;
+  document.getElementById('btn-run').disabled   = false;
+  document.getElementById('btn-pause').disabled = true;
+}
+
+function updateSpeed(val) {
+  simSpeed = parseInt(val);
+  const label = document.getElementById('speed-label');
+  if (simSpeed === 100) {
+    label.innerHTML = `<span class="blink" style="color:var(--accent-red)">🔥 UNLEASHED MAX (10 MHz)</span>`;
+  } else {
+    label.textContent = `${simSpeed * 10} Hz`;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//   ОТРИСОВКА VGA ЭКРАНА И UI
+// ═══════════════════════════════════════════════════════════════════
+
+function renderVGA() {
+  const canvas = document.getElementById('vga-screen');
+  const ctx = canvas.getContext('2d');
+  const imgData = ctx.createImageData(128, 128);
+
+  for (let i = 0; i < VRAM_SIZE; i++) {
+    const byte = cpu.memory[VRAM_START + i];
+    
+    // Преобразуем 1 байт в 8-битный цвет (3 бита Red, 3 бита Green, 2 бита Blue)
+    const r = ((byte >> 5) & 0x07) * 36;
+    const g = ((byte >> 2) & 0x07) * 36;
+    const b = (byte & 0x03) * 85;
+
+    const idx = i * 4;
+    imgData.data[idx]     = r;
+    imgData.data[idx + 1] = g;
+    imgData.data[idx + 2] = b;
+    imgData.data[idx + 3] = 255; // Полная непрозрачность
+  }
+  ctx.putImageData(imgData, 0, 0);
+}
+
+function updateUI() {
+  updateRegisters();
+  updateMemory();
+  renderVGA();
+  document.getElementById('cycle-counter').textContent = cpu.cycles;
+  
+  const eipEl = document.getElementById('eip-line');
+  if (program.length === 0 || cpu.regs.EIP >= program.length) {
+    eipEl.textContent = 'EIP → СВЕРХЛИМИТ (HLT)';
+  } else {
+    const instr = program[cpu.regs.EIP];
+    eipEl.textContent = `EIP[${cpu.regs.EIP}] → СТРОКА ${instr.srcLine}: ${instr.raw}`;
+  }
+}
+
+function updateRegisters() {
+  const tbody = document.getElementById('reg-tbody');
+  const regNames = ['EAX','EBX','ECX','EDX','ESP','EIP'];
+  const colors = { EAX:'#ff3333', EBX:'#ffff00', ECX:'#00ffff', EDX:'#ff00ff', ESP:'#39ff14', EIP:'#ffff00' };
+
+  tbody.innerHTML = '';
+  for (const name of regNames) {
+    const val = cpu.regs[name];
+    const prev = prevRegs[name];
+    const changed = prev !== undefined && prev !== val;
+
+    const tr = document.createElement('tr');
+    tr.className = "border-b border-purple-900";
+    if (changed) tr.classList.add('reg-row-changed');
+
+    const hexVal = '0x' + val.toString(16).toUpperCase().padStart(8, '0');
+    tr.innerHTML = `
+      <td style="color:${colors[name]}" class="font-bold py-1">${name}</td>
+      <td class="text-white text-right font-mono">${hexVal}</td>
+      <td class="text-cyan-400 text-right font-mono pl-4">${val}</td>
+    `;
+    tbody.appendChild(tr);
+  }
+
+  document.getElementById('flag-zf').textContent = cpu.flags.ZF;
+  document.getElementById('flag-cf').textContent = cpu.flags.CF;
+}
+
+function updateMemory() {
+  const container = document.getElementById('mem-container');
+  let html = '<table class="w-full text-left font-mono">';
+  
+  for (let r = 0; r < 10; r++) { // Выводим 160 байт от текущего смещения
+    const rowAddr = memDisplayOffset + (r * 16);
+    if (rowAddr >= MEM_SIZE) break;
+
+    html += `<tr><td class="text-purple-500 font-bold">${rowAddr.toString(16).toUpperCase().padStart(8,'0')}:</td>`;
+    
+    let bytesHex = '';
+    let ascii = '';
+    for (let c = 0; c < 16; c++) {
+      const addr = rowAddr + c;
+      if (addr >= MEM_SIZE) break;
+      const b = cpu.memory[addr];
+
+      let byteHex = b.toString(16).toUpperCase().padStart(2, '0');
+      
+      // Стили подсветки областей памяти
+      let colorClass = 'text-green-500';
+      if (addr >= VRAM_START && addr < VRAM_START + VRAM_SIZE) colorClass = 'text-pink-500 font-bold';
+      if (addr === cpu.regs.ESP) colorClass = 'text-yellow-400 font-bold border border-yellow-400';
+
+      bytesHex += `<span class="${colorClass} mx-1">${byteHex}</span>`;
+      ascii += (b >= 32 && b < 127) ? String.fromCharCode(b) : '.';
+    }
+    html += `<td>${bytesHex}</td><td class="text-blue-400 pl-2">${ascii}</td></tr>`;
+  }
+  html += '</table>';
+  container.innerHTML = html;
+}
+
+function jumpMemory() {
+  const val = document.getElementById('mem-offset').value;
+  const parsed = parseNum(val);
+  if (parsed !== null && parsed < MEM_SIZE) {
+    memDisplayOffset = parsed;
+    updateMemory();
+    beep(750, 100);
+  } else {
+    beep(100, 300);
+  }
+}
+
+function setMemView(mode) {
+  memViewMode = mode;
+  updateMemory();
+}
+
+function setStatus(type, msg) {
+  const text = document.getElementById('status-text');
+  text.textContent = msg;
+}
+
+function enableControls(enabled) {
+  ['btn-step','btn-run','btn-reset'].forEach(id => {
+    document.getElementById(id).disabled = !enabled;
+  });
+  document.getElementById('btn-pause').disabled = true;
+}
+
+function terminalWrite(text, addNewline = false, cls = '') {
+  const term = document.getElementById('terminal-output');
+  if (cls) {
+    const span = document.createElement('span');
+    span.className = cls;
+    span.textContent = text + (addNewline ? '\n' : '');
+    term.appendChild(span);
+  } else {
+    term.appendChild(document.createTextNode(text));
+  }
+  term.scrollTop = term.scrollHeight;
+}
+
+function loadExample(name) {
+  document.getElementById('code-editor').value = EXAMPLES[name] || '';
+  stopRun();
+  setStatus('idle', `Загружен шаблон "${name}"`);
+  beep(880, 100);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//   QEMU / МОНТИРОВАНИЕ ОБРАЗОВ ДИСКОВ
+// ═══════════════════════════════════════════════════════════════════
+
+function handleDiskUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const rawData = new Uint8Array(e.target.result);
+    terminalWrite(`\n[QEMU] СМОНТИРОВАН СИСТЕМНЫЙ ОБРАЗ: "${file.name}" (${rawData.length} байт)\n`, true, 'text-yellow-400');
+    
+    // Загружаем первые 512 байт в BIOS/MBR область (начиная с 0x7C00 по стандарту IBM)
+    const loadOffset = 0x7C00;
+    const sizeToCopy = Math.min(rawData.length, cpu.memory.length - loadOffset);
+    for (let i = 0; i < sizeToCopy; i++) {
+      cpu.memory[loadOffset + i] = rawData[i];
+    }
+    
+    terminalWrite(`[QEMU] Записано ${sizeToCopy} байт по базовому вектору прерывания MBR [0x7C00]\n`, true, 'text-green-500');
+
+    // Проверяем классическую сигнатуру загрузчика MBR (0x55AA на 510-511 байтах)
+    if (rawData.length >= 512) {
+      const sig1 = rawData[510];
+      const sig2 = rawData[511];
+      if (sig1 === 0x55 && sig2 === 0xAA) {
+        terminalWrite(`[QEMU] [OK] СИГНАТУРА ЗАГРУЗЧИКА MBR (0x55AA) УСПЕШНО РАСПОЗНАНА В БАЙТАХ 510-511!\n`, true, 'text-green-400 font-bold');
+        beep(700, 100);
+        setTimeout(() => beep(900, 150), 120);
+      } else {
+        terminalWrite(`[QEMU] [ВНИМАНИЕ] Сигнатура MBR (0x55AA) отсутствует (Считано: 0x${sig1.toString(16)}${sig2.toString(16)}). Это не системный загрузчик x86.\n`, true, 'text-red-500 blink');
+        beep(200, 450);
+      }
+    }
+
+    // Включаем кнопку декомпиляции
+    document.getElementById('btn-decompile-boot').disabled = false;
+    
+    // Перестраиваем строку QEMU
+    document.getElementById('qemu-cmd').textContent = `qemu-system-i386 -m ${Math.ceil(cpu.memory.length / 1024 / 1024)}M -cpu pentium3 -soundhw pcspk -hda ${file.name}`;
+    updateMemory();
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+/**
+ * Декомпилятор байт загрузочного сектора (0x7C00) прямо в Ассемблер.
+ * Позволяет интерпретировать образ диска в рабочий код нашего микропроцессора.
+ */
+function decompileBootSector() {
+  let asm = `; === ДЕКОМПИЛИРОВАННЫЙ СЕКТОР ЗАГРУЗКИ MBR (0x7C00) ===\n`;
+  asm += `; Автоматическая трансляция бинарных кодов в упрощенный x86\n`;
+  asm += `; Нажмите [COMPILE] чтобы загрузить транслированные векторы!\n\n`;
+  asm += `  MOV ESP, 1048575  ; Ставим стек на верх RAM\n\n`;
+
+  const bootOffset = 0x7C00;
+  let i = 0;
+  while (i < 256) {
+    const addr = bootOffset + i;
+    const b = cpu.memory[addr];
+    let cmd = "";
+
+    // Карта простейшей бинарной расшифровки байт-кодов:
+    if (b === 0x90) {
+      cmd = "  NOP";
+      i += 1;
+    } else if (b === 0xF4) {
+      cmd = "  HLT";
+      i += 1;
+    } else if (b === 0xB8) { // MOV EAX, imm16
+      const low = cpu.memory[addr + 1];
+      const high = cpu.memory[addr + 2];
+      const val = low | (high << 8);
+      cmd = `  MOV EAX, ${val}`;
+      i += 3;
+    } else if (b === 0xBB) { // MOV EBX, imm16
+      const low = cpu.memory[addr + 1];
+      const high = cpu.memory[addr + 2];
+      const val = low | (high << 8);
+      cmd = `  MOV EBX, ${val}`;
+      i += 3;
+    } else if (b === 0xB9) { // MOV ECX, imm16
+      const low = cpu.memory[addr + 1];
+      const high = cpu.memory[addr + 2];
+      const val = low | (high << 8);
+      cmd = `  MOV ECX, ${val}`;
+      i += 3;
+    } else if (b === 0xBA) { // MOV EDX, imm16
+      const low = cpu.memory[addr + 1];
+      const high = cpu.memory[addr + 2];
+      const val = low | (high << 8);
+      cmd = `  MOV EDX, ${val}`;
+      i += 3;
+    } else if (b === 0xCD && cpu.memory[addr+1] === 0x80) {
+      cmd = "  INT 0x80";
+      i += 2;
+    } else if (b === 0x40) {
+      cmd = "  INC EAX";
+      i += 1;
+    } else if (b === 0x41) {
+      cmd = "  INC ECX";
+      i += 1;
+    } else if (b === 0x43) {
+      cmd = "  INC EBX";
+      i += 1;
+    } else if (b === 0x48) {
+      cmd = "  DEC EAX";
+      i += 1;
+    } else if (b === 0x50) {
+      cmd = "  PUSH EAX";
+      i += 1;
+    } else if (b === 0x58) {
+      cmd = "  POP EAX";
+      i += 1;
+    } else {
+      // Чтобы бинарные данные не ломали ассемблер, мы транслируем их в безопасный сдвиг в регистр EAX с комментарием
+      cmd = `  MOV EAX, ${b} ; [RAW BYTE DECODE: 0x${b.toString(16).toUpperCase()}]`;
+      i += 1;
+    }
+    asm += cmd + "\n";
+  }
+
+  document.getElementById('code-editor').value = asm;
+  terminalWrite(`[QEMU] Декомпиляция 256 байт MBR завершена. Нажмите COMPILE.\n`, true, 'text-cyan-400');
+  beep(800, 200);
+}
+
+function attemptBootWin7() {
+  terminalWrite(`\n[SYSTEM HYPERVISOR PROMPT] ЗАПУСК WIN7.ISO В РЕЖИМЕ СВЕРХРАЗГОНА...`, true, 'text-red-500 blink');
+  beep(200, 100);
+  setTimeout(() => beep(200, 100), 120);
+  setTimeout(() => beep(100, 500), 240);
+
+  setTimeout(() => {
+    terminalWrite(`\n[CRITICAL DEVIATION]: Крах шины ACPI! Процессор не поддерживает страничную адресацию (Paging) и режим Long Mode x86-64.`, true, 'text-yellow-400');
+    terminalWrite(`Минимальные требования Windows 7: Процессор 1 ГГц с поддержкой SSE2, APIC, PAE.`, true, 'text-yellow-400');
+    terminalWrite(`Текущие спецификации: Процессор 14-инструкций, ОЗУ 1МБ, шина 8-бит.`, true, 'text-yellow-400');
+    terminalWrite(`Попытка запустить сырые байты MBR в обход ядра Windows 7...`, true, 'text-green-500');
+    
+    // Если пользователь загрузил MBR, мы можем перенаправить его на декомпиляцию
+    if (document.getElementById('btn-decompile-boot').disabled === false) {
+      decompileBootSector();
+    } else {
+      terminalWrite(`\n[FATAL] Нет загрузочного сектора на диске. Вставьте файл образа.\n`, true, 'text-red-500');
+    }
+  }, 1000);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//   ИНИЦИАЛИЗАЦИЯ СИСТЕМЫ
+// ═══════════════════════════════════════════════════════════════════
+
+function initEmulator() {
+  document.getElementById('code-editor').value = EXAMPLES.graphics;
+  resetCPU();
+  enableControls(false);
+
+  // Изменение настроек памяти из выпадающего списка QEMU
+  document.getElementById('qemu-ram').addEventListener('change', function(e) {
+    const size = parseInt(e.target.value);
+    terminalWrite(`[QEMU] Перераспределение виртуальной физической RAM: ${size / 1024 / 1024} МБ\n`, true, 'text-cyan-400');
+    beep(900, 80);
+  });
+
+  terminalWrite('☢️ СИСТЕМА ИНИЦИАЛИЗИРОВАНА. ЭЛТ-ТРУБКА ПРОГРЕТА.\n', false, 'text-green-400');
+  terminalWrite('Нажмите [COMPILE] чтобы загрузить код плазмы в VRAM!\n', false, 'text-cyan-400');
+}
+</script>
+</body>
+</html>
