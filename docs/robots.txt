@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://qlegacy.github.io/sitemap.xml
