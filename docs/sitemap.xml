@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <!-- Главная страница (index.html) -->
+  <url>
+    <loc>https://qlegacy.github.io/</loc>
+    <lastmod>2026-06-24</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+  </url>
+
+  <!-- Новостной шаблон (news.html) -->
+  <url>
+    <loc>https://qlegacy.github.io/news.html</loc>
+    <lastmod>2026-06-24</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+
+  <!-- Динамическая страница открытия новостного портала -->
+  <url>
+    <loc>https://qlegacy.github.io/news.html?manifest=24-06-26</loc>
+    <lastmod>2026-06-24</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- Страница quad86.html -->
+  <url>
+    <loc>https://qlegacy.github.io/quad86.html</loc>
+    <lastmod>2026-06-24</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <!-- Страница space.html -->
+  <url>
+    <loc>https://qlegacy.github.io/space.html</loc>
+    <lastmod>2026-06-24</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <!-- Версия Quad86: v1.html -->
+  <url>
+    <loc>https://qlegacy.github.io/ver/Quad86/version/v1.html</loc>
+    <lastmod>2026-06-24</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+
+  <!-- Версия Quad86: v2.html -->
+  <url>
+    <loc>https://qlegacy.github.io/ver/Quad86/version/v2.html</loc>
+    <lastmod>2026-06-24</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+</urlset>
