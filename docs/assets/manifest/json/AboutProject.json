@@ -19,7 +19,7 @@
     },
     {
       "type": "p",
-      "text": "<div style='text-align:center; margin: 25px 0;'><img src='assets/manifest/content/preview/QL-ABOUT-image_0001.png' alt='Архитектура QuadLegacy' style='max-width: 100%; height: auto; border-radius: 8px; border: 1px solid rgba(46,46,209,0.4); box-shadow: 0 0 15px rgba(46,46,209,0.25);' /><br><span style='font-size: 13px; color: #888; display: inline-block; margin-top: 10px;'>Архитектура QuadLegacy позволяет разделять логику отображения, контент и 3D-сцены для максимальной производительности.</span></div>"
+      "text": "<div style='text-align:center; margin: 25px 0;'><img src='assets/manifest/content/preview/QL-ABOUT-image_0001.png' alt='Архитектура QuadLegacy' /><br><span style='font-size: 13px; color: #888; display: inline-block; margin-top: 10px;'>Архитектура QuadLegacy позволяет разделять логику отображения, контент и 3D-сцены для максимальной производительности.</span></div>"
     },
     {
       "type": "p",
@@ -29,5 +29,12 @@
   "matrixColor": "46, 46, 209",
   "rayColor": "56, 56, 255",
   "rayColorAlt": "240, 100, 50",
-  "customCSS": "/* 1. Загрузка главного фонового изображения для страницы проекта */ .news-image-placeholder { background-image: url('assets/manifest/content/preview/QL-ABOUT-image_0000.png'); background-size: cover; background-position: center; border: 1px solid rgba(46, 46, 209, 0.5); } /* Скрываем текстовую заглушку поверх загруженного изображения */ .news-image-placeholder .image-text { display: none; } /* 2. Переопределение стандартного текста копирайта в подвале */ footer p { display: none !important; } footer::after { content: '© 2026 QuadLegacy. Все права не защищены.'; font-size: 12px; color: #555; font-family: 'Courier New', Courier, monospace; display: block; }"
+  "themeColor": "#3838ff",
+  "themeColorRGB": "46, 46, 209",
+  "bgColor": "#020212",
+  "textColor": "#e0eaf5",
+  "quoteTextColor": "#a5c5f3",
+  "scanlineColor": "rgba(56, 56, 255, 0.6)",
+  "scanlineGlow": "#3838ff",
+  "customCSS": "/* 1. Загрузка главного фонового изображения для страницы проекта */ .news-image-placeholder { background-image: url('assets/manifest/content/preview/QL-ABOUT-image_0000.png'); background-size: cover; background-position: center; border: 1px solid rgba(var(--theme-color-rgb), 0.5); } /* Скрываем текстовую заглушку поверх загруженного изображения */ .news-image-placeholder .image-text { display: none; } /* 2. Переопределение стандартного текста копирайта в подвале */ footer p { display: none !important; } footer::after { content: '© 2026 QuadLegacy. Все права не защищены.'; font-size: 12px; color: #555; font-family: 'Courier New', Courier, monospace; display: block; }"
 }
