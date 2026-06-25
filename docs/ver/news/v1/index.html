@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QuadLegacy Portal | Загрузка системы...</title>
+    <style>
+        /* Базовые стили */
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            min-height: 100vh;
+            background-color: #000;
+            overflow-x: hidden;
+            color: #e0e0e0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        /* 3D-Матричный фон */
+        .matrix-viewport {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 1;
+            overflow: hidden;
+            pointer-events: none;
+            perspective: 1000px;
+        }
+
+        #matrixCanvas {
+            position: absolute;
+            top: -100%;
+            left: -100%;
+            width: 300%;
+            height: 300%;
+            transition: transform 0.1s ease-out;
+            transform: rotateX(20deg) rotateY(-10deg) rotateZ(-2deg) scale(1.1);
+            transform-origin: center center;
+            opacity: 0.55;
+            filter: blur(0.5px);
+        }
+
+        /* Холст для искр */
+        #rayCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        /* 3D-Сцена для контента */
+        .content-perspective {
+            position: relative;
+            width: 100%;
+            z-index: 2;
+            perspective: 1000px;
+        }
+
+        .content-wrapper {
+            max-width: 900px;
+            margin: 90px auto;
+            padding: 20px;
+            transform: rotateX(20deg) rotateY(-10deg) rotateZ(-2deg);
+            transform-style: preserve-3d;
+            transition: transform 0.6s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.5s ease;
+            cursor: zoom-in;
+            opacity: 0; /* Скрыто до полной загрузки JSON */
+            display: none;
+        }
+
+        .content-wrapper.zoomed {
+            transform: rotateX(5deg) rotateY(-2deg) rotateZ(-0.5deg) scale(1.08) translateZ(80px);
+            cursor: zoom-out;
+        }
+
+        /* Терминальный загрузчик */
+        #system-loader {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 100;
+            font-family: 'Courier New', Courier, monospace;
+            background: rgba(5, 10, 5, 0.95);
+            border: 1px solid #00ff00;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 0 30px rgba(0, 255, 0, 0.2);
+            max-width: 90%;
+            width: 500px;
+            transition: opacity 0.5s ease;
+        }
+
+        #system-loader h2 {
+            color: #00ff00;
+            margin-bottom: 15px;
+            font-size: 18px;
+            text-transform: uppercase;
+        }
+
+        #system-loader p {
+            font-size: 14px;
+            margin: 5px 0;
+        }
+
+        .error-state {
+            border-color: #ff0000 !important;
+            box-shadow: 0 0 30px rgba(255, 0, 0, 0.2) !important;
+        }
+        .error-state h2 {
+            color: #ff0000 !important;
+        }
+
+        /* Компоненты верстки */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            background: rgba(8, 12, 8, 0.85);
+            border: 1px solid #00ff0033;
+            border-radius: 8px;
+            backdrop-filter: blur(12px);
+            margin-bottom: 30px;
+            box-shadow: 0 0 20px rgba(0, 255, 0, 0.1);
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            color: #00ff00;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+            font-family: 'Courier New', Courier, monospace;
+        }
+
+        nav a {
+            color: #a0a0a0;
+            text-decoration: none;
+            margin-left: 20px;
+            font-size: 14px;
+            text-transform: uppercase;
+            transition: color 0.3s, text-shadow 0.3s;
+        }
+
+        nav a:hover {
+            color: #00ff00;
+            text-shadow: 0 0 8px rgba(0, 255, 0, 0.6);
+        }
+
+        .news-card {
+            background: rgba(6, 10, 6, 0.9);
+            border: 1px solid #00ff0044;
+            border-radius: 12px;
+            padding: 40px;
+            backdrop-filter: blur(15px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.8), 0 0 30px rgba(0, 255, 0, 0.03);
+            transform: translateZ(30px);
+        }
+
+        .news-category {
+            display: inline-block;
+            background: rgba(0, 255, 0, 0.15);
+            color: #00ff00;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            text-transform: uppercase;
+            font-weight: bold;
+            margin-bottom: 15px;
+            border: 1px solid rgba(0, 255, 0, 0.3);
+        }
+
+        h1 {
+            font-size: 32px;
+            color: #ffffff;
+            margin-bottom: 10px;
+            line-height: 1.2;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+        }
+
+        .news-meta {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 25px;
+            font-family: 'Courier New', Courier, monospace;
+        }
+
+        .news-image-placeholder {
+            width: 100%;
+            height: 380px;
+            background: linear-gradient(135deg, #070a07 25%, transparent 25%) -50px 0,
+                        linear-gradient(225deg, #070a07 25%, transparent 25%) -50px 0,
+                        linear-gradient(315deg, #070a07 25%, transparent 25%),
+                        linear-gradient(45deg, #070a07 25%, transparent 25%);
+            background-size: 100px 100px;
+            background-color: #020302;
+            border: 2px dashed rgba(0, 255, 0, 0.4);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            margin: 25px 0;
+            overflow: hidden;
+            box-shadow: inset 0 0 30px rgba(0,0,0,0.9);
+        }
+
+        .news-image-placeholder::before {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 2px;
+            background: rgba(0, 255, 0, 0.6);
+            top: 0;
+            box-shadow: 0 0 15px #00ff00;
+            animation: scanline 6s linear infinite;
+        }
+
+        @keyframes scanline {
+            0% { top: 0%; }
+            50% { top: 100%; }
+            100% { top: 0%; }
+        }
+
+        .image-text {
+            color: #00ff00;
+            font-family: 'Courier New', Courier, monospace;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            text-align: center;
+            z-index: 2;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.85);
+            border: 1px solid #00ff0055;
+            border-radius: 4px;
+            white-space: pre-wrap; /* Переносы строк из JSON */
+        }
+
+        .news-content p {
+            font-size: 16px;
+            line-height: 1.6;
+            margin-bottom: 20px;
+            color: #ccc;
+        }
+
+        blockquote {
+            border-left: 4px solid #00ff00;
+            padding-left: 20px;
+            margin: 30px 0;
+            font-style: italic;
+            color: #a5f3a5;
+            background: rgba(0, 255, 0, 0.03);
+            padding-top: 10px;
+            padding-bottom: 10px;
+        }
+
+        footer {
+            margin-top: 40px;
+            text-align: center;
+            padding: 20px;
+            font-size: 12px;
+            color: #444;
+            border-top: 1px solid #111;
+        }
+
+        @media (max-width: 768px) {
+            .content-wrapper {
+                margin: 40px auto;
+                padding: 15px;
+                transform: rotateX(6deg) rotateY(-3deg) rotateZ(-0.5deg);
+            }
+            .content-wrapper.zoomed {
+                transform: rotateX(2deg) rotateY(-1deg) scale(1.02) translateZ(30px);
+            }
+            header {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+                padding: 15px;
+            }
+            nav a {
+                margin: 0 10px;
+                display: inline-block;
+            }
+            .news-card {
+                padding: 20px;
+            }
+            h1 {
+                font-size: 24px;
+            }
+            .news-image-placeholder {
+                height: 240px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Интерактивный загрузчик-терминал -->
+    <div id="system-loader">
+        <h2>Инициализация ядра...</h2>
+        <p id="loader-manifest">Поиск манифеста: ожидает параметр ?manifest=...</p>
+        <p id="loader-status">Подключение к сети: Ожидание...</p>
+    </div>
+
+    <!-- Стабильный 3D-фон -->
+    <div class="matrix-viewport">
+        <canvas id="matrixCanvas"></canvas>
+    </div>
+
+    <!-- Холст для искр -->
+    <canvas id="rayCanvas"></canvas>
+
+    <!-- 3D-сцена для контента -->
+    <div class="content-perspective">
+        <div class="content-wrapper" id="content-container">
+            <header>
+                <div class="logo" id="dyn-logo">QuadLegacy</div>
+                <nav>
+                    <!-- Настроенные динамические и статические ссылки -->
+                    <a href="https://qlegacy.github.io/terminal.html">Терминал</a>
+                    <a href="https://t.me/quadlegacybio" target="_blank">Наша база</a>
+                    <a href="?manifest=AboutProject">О проекте</a>
+                </nav>
+            </header>
+
+            <main>
+                <article class="news-card">
+                    <span class="news-category" id="dyn-category">...</span>
+                    <h1 id="dyn-title">...</h1>
+                    <p class="news-meta" id="dyn-meta">...</p>
+
+                    <div class="news-image-placeholder">
+                        <div class="image-text" id="dyn-image-text">...</div>
+                    </div>
+
+                    <div class="news-content" id="dyn-content">
+                        <!-- Динамический контент загрузится сюда -->
+                    </div>
+                </article>
+            </main>
+
+            <footer>
+                <p>© 2026 QuadLegacy Project. Все права защищены.</p>
+            </footer>
+        </div>
+    </div>
+
+    <!-- Динамический блок стилей для инжекции кастомного CSS -->
+    <style id="dynamic-css"></style>
+
+    <script>
+        // Глобальные настраиваемые параметры для эффектов (переписываются из JSON)
+        let config = {
+            matrixColor: "0, 255, 100",
+            rayColor: "255, 170, 10",
+            rayColorAlt: "255, 235, 140"
+        };
+
+        // ==========================================
+        // Парсинг манифеста из URL
+        // ==========================================
+        const loader = document.getElementById('system-loader');
+        const loaderManifest = document.getElementById('loader-manifest');
+        const loaderStatus = document.getElementById('loader-status');
+        const contentContainer = document.getElementById('content-container');
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const manifestParam = urlParams.get('manifest');
+
+        if (!manifestParam) {
+            setLoaderError("ОШИБКА: Манифест не указан", "Добавьте в адресную строку параметр ?manifest=ИМЯ_ФАЙЛА (например, ?manifest=24-06-26)");
+        } else {
+            loaderManifest.textContent = `Путь: assets/manifest/json/${manifestParam}.json`;
+            loaderStatus.textContent = "Загрузка данных...";
+
+            fetch(`assets/manifest/json/${manifestParam}.json`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`Не удалось найти манифест. Код ошибки: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    renderPage(data);
+                })
+                .catch(err => {
+                    setLoaderError("СБОЙ СИСТЕМЫ", err.message);
+                });
+        }
+
+        // Вывод ошибки в загрузчик
+        function setLoaderError(title, desc) {
+            loader.classList.add('error-state');
+            loader.innerHTML = `
+                <h2>${title}</h2>
+                <p style="color: #ff3333;">${desc}</p>
+                <p style="margin-top: 15px; font-size: 11px; color: #666;">Пожалуйста, проверьте наличие JSON по указанному пути.</p>
+            `;
+        }
+
+        // Рендеринг данных из полученного JSON
+        function renderPage(data) {
+            // 1. Текстовые поля
+            if (data.logoText) document.getElementById('dyn-logo').textContent = data.logoText;
+            if (data.newsCategory) document.getElementById('dyn-category').textContent = data.newsCategory;
+            if (data.title) {
+                document.getElementById('dyn-title').textContent = data.title;
+                document.title = `${data.logoText || 'QuadLegacy'} | ${data.title}`;
+            }
+            if (data.meta) document.getElementById('dyn-meta').textContent = data.meta;
+            if (data.imageText) document.getElementById('dyn-image-text').textContent = data.imageText;
+
+            // 2. Генерация тела новости
+            const contentBox = document.getElementById('dyn-content');
+            contentBox.innerHTML = '';
+
+            if (Array.isArray(data.content)) {
+                data.content.forEach(block => {
+                    if (block.type === 'p') {
+                        const p = document.createElement('p');
+                        p.innerHTML = block.text;
+                        contentBox.appendChild(p);
+                    } else if (block.type === 'blockquote') {
+                        const bq = document.createElement('blockquote');
+                        bq.innerHTML = block.text;
+                        contentBox.appendChild(bq);
+                    }
+                });
+            }
+
+            // 3. Кастомные настройки эффектов
+            if (data.matrixColor) config.matrixColor = data.matrixColor;
+            if (data.rayColor) config.rayColor = data.rayColor;
+            if (data.rayColorAlt) config.rayColorAlt = data.rayColorAlt;
+
+            // 4. Инжекция пользовательских стилей (CSS)
+            if (data.customCSS) {
+                document.getElementById('dynamic-css').textContent = data.customCSS;
+            }
+
+            // Инициализация Canvas после получения настроек из JSON
+            initMatrix();
+
+            // 5. Плавный запуск интерфейса
+            loader.style.opacity = '0';
+            setTimeout(() => {
+                loader.style.display = 'none';
+                contentContainer.style.display = 'block';
+                setTimeout(() => {
+                    contentContainer.style.opacity = '1';
+                }, 50);
+            }, 500);
+        }
+
+        // ==========================================
+        // 3D Матричный дождь + Адаптивный скролл-параллакс
+        // ==========================================
+        const matrixCanvas = document.getElementById('matrixCanvas');
+        const mCtx = matrixCanvas.getContext('2d');
+
+        const katakana = "ｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓﾔﾕﾖﾗﾘﾙﾚﾛﾜﾝ1234567890";
+        const alphabet = katakana.split("");
+        const fontSize = 18;
+
+        let columns = 0;
+        let rainDrops = [];
+
+        function initMatrix() {
+            const scaleFactor = window.innerWidth < 768 ? 1.5 : 1.2;
+            matrixCanvas.width = window.innerWidth * scaleFactor;
+            matrixCanvas.height = window.innerHeight * scaleFactor;
+            
+            columns = Math.floor(matrixCanvas.width / fontSize);
+            rainDrops = [];
+            for (let x = 0; x < columns; x++) {
+                rainDrops[x] = Math.random() * -150;
+            }
+        }
+        
+        window.addEventListener('resize', initMatrix);
+
+        window.addEventListener('scroll', () => {
+            const scrollY = window.scrollY;
+            const isMobile = window.innerWidth < 768;
+            
+            const tiltX = isMobile ? '6deg' : '20deg';
+            const tiltY = isMobile ? '-3deg' : '-10deg';
+            const tiltZ = isMobile ? '-0.5deg' : '-2deg';
+            const factor = isMobile ? 0.15 : 0.25;
+
+            matrixCanvas.style.transform = `rotateX(${tiltX}) rotateY(${tiltY}) rotateZ(${tiltZ}) translateY(${-scrollY * factor}px) scale(1.1)`;
+        });
+
+        let lastTime = 0;
+        const fpsInterval = 1000 / 30; 
+
+        function drawMatrix(timestamp) {
+            requestAnimationFrame(drawMatrix);
+
+            const elapsed = timestamp - lastTime;
+            if (elapsed < fpsInterval) return; 
+            lastTime = timestamp - (elapsed % fpsInterval);
+
+            mCtx.fillStyle = 'rgba(0, 0, 0, 0.08)';
+            mCtx.fillRect(0, 0, matrixCanvas.width, matrixCanvas.height);
+
+            mCtx.font = fontSize + 'px monospace';
+
+            for (let i = 0; i < rainDrops.length; i++) {
+                const text = alphabet[Math.floor(Math.random() * alphabet.length)];
+                
+                const alpha = Math.random() * 0.5 + 0.5;
+                mCtx.fillStyle = `rgba(${config.matrixColor}, ${alpha})`;
+
+                mCtx.fillText(text, i * fontSize, rainDrops[i] * fontSize);
+
+                if (rainDrops[i] * fontSize > matrixCanvas.height && Math.random() > 0.975) {
+                    rainDrops[i] = 0;
+                }
+                rainDrops[i]++;
+            }
+        }
+        
+        requestAnimationFrame(drawMatrix);
+
+
+        // ==========================================
+        // Искры с поддержкой Сенсорных экранов
+        // ==========================================
+        const rayCanvas = document.getElementById('rayCanvas');
+        const rCtx = rayCanvas.getContext('2d');
+
+        function resizeRays() {
+            rayCanvas.width = window.innerWidth;
+            rayCanvas.height = window.innerHeight;
+        }
+        resizeRays();
+        window.addEventListener('resize', resizeRays);
+
+        let rays = [];
+        const maxRays = 100;
+
+        function createRay(x, y) {
+            return {
+                x: x,
+                y: y,
+                vx: (Math.random() - 0.5) * 7, 
+                vy: Math.random() * 4 + 3,     
+                length: Math.random() * 25 + 10,
+                width: Math.random() * 1.5 + 0.5,
+                alpha: 1,
+                decay: Math.random() * 0.025 + 0.02, 
+                color: Math.random() > 0.3 ? `rgba(${config.rayColor}, ` : `rgba(${config.rayColorAlt}, `
+            };
+        }
+
+        window.addEventListener('mousemove', (e) => {
+            if (contentContainer.contains(e.target)) {
+                if (rays.length < maxRays) {
+                    for (let i = 0; i < 3; i++) {
+                        rays.push(createRay(e.clientX, e.clientY));
+                    }
+                }
+            }
+        });
+
+        function handleMobileTouch(e) {
+            const touch = e.touches[0];
+            if (contentContainer.contains(e.target)) {
+                if (rays.length < maxRays) {
+                    for (let i = 0; i < 3; i++) {
+                        rays.push(createRay(touch.clientX, touch.clientY));
+                    }
+                }
+            }
+        }
+
+        window.addEventListener('touchstart', handleMobileTouch, { passive: true });
+        window.addEventListener('touchmove', handleMobileTouch, { passive: true });
+
+        function animateRays() {
+            rCtx.clearRect(0, 0, rayCanvas.width, rayCanvas.height);
+
+            for (let i = rays.length - 1; i >= 0; i--) {
+                const r = rays[i];
+                
+                r.x += r.vx;
+                r.y += r.vy;
+                r.alpha -= r.decay;
+
+                if (r.alpha <= 0) {
+                    rays.splice(i, 1);
+                    continue;
+                }
+
+                rCtx.beginPath();
+                rCtx.strokeStyle = r.color + r.alpha + ")";
+                rCtx.lineWidth = r.width;
+                rCtx.lineCap = 'round';
+                
+                rCtx.moveTo(r.x, r.y);
+                rCtx.lineTo(r.x - r.vx * 1.5, r.y - r.vy * 1.5);
+
+                rCtx.shadowBlur = 6;
+                rCtx.shadowColor = `rgba(${config.rayColor}, 0.5)`;
+
+                rCtx.stroke();
+            }
+
+            rCtx.shadowBlur = 0; 
+            requestAnimationFrame(animateRays);
+        }
+
+        animateRays();
+
+
+        // ==========================================
+        // Интерактивный Zoom (ЛКМ / Тап на телефоне)
+        // ==========================================
+        let isZoomed = false;
+
+        document.addEventListener('click', (e) => {
+            if (e.target.closest('a') || e.target.closest('button')) return;
+            if (loader.style.display === 'none') {
+                isZoomed = !isZoomed;
+                if (isZoomed) {
+                    contentContainer.classList.add('zoomed');
+                } else {
+                    contentContainer.classList.remove('zoomed');
+                }
+            }
+        });
+    </script>
+</body>
+</html>
