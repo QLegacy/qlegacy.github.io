@@ -1,0 +1,33 @@
+{
+  "logoText": "QuadLegacy",
+  "newsCategory": "О проекте",
+  "title": "О проекте QuadLegacy",
+  "meta": "25-06-26 | ID страницы: #QL-ABOUT-A",
+  "imageText": "[ О ПРОЕКТЕ ]",
+  "content": [
+    {
+      "type": "p",
+      "text": "<span style='font-size: 13px; color: #888;'>Официальная информация о платформе <a href='https://qlegacy.github.io' target='_blank' style='color:#3838ff; text-decoration:underline;'>qlegacy.github.io</a></span>"
+    },
+    {
+      "type": "p",
+      "text": "<span style='font-size: 18px; line-height: 1.6; color: #fff;'>QuadLegacy — это экспериментальный веб-сайт, созданный для переосмысления привычного пользовательского интерфейса. Мы объединяем классический веб, интерактивную трёхмерную графику и гибкую систему кастомизации контента, превращая каждую страницу в интерактивное цифровое пространство.</span>"
+    },
+    {
+      "type": "blockquote",
+      "text": "«Наша миссия — стереть грань между статичным текстом и динамичным визуалом. Благодаря архитектуре на базе JSON, OpenGL, React и подобных, из-за чего внешний вид и атмосфера сайта могут мгновенно подстраиваться под суть публикуемого материала, создавая уникальный опыт для каждого посетителя.»"
+    },
+    {
+      "type": "p",
+      "text": "<div style='text-align:center; margin: 25px 0;'><img src='assets/manifest/content/preview/QL-ABOUT-image_0001.png' alt='Архитектура QuadLegacy' style='max-width: 100%; height: auto; border-radius: 8px; border: 1px solid rgba(46,46,209,0.4); box-shadow: 0 0 15px rgba(46,46,209,0.25);' /><br><span style='font-size: 13px; color: #888; display: inline-block; margin-top: 10px;'>Архитектура QuadLegacy позволяет разделять логику отображения, контент и 3D-сцены для максимальной производительности.</span></div>"
+    },
+    {
+      "type": "p",
+      "text": "Проект развивается как открытая и доступная экосистема. Любой разработчик или энтузиаст может развернуть страницу на базе нашего движка у себя на хостинге, используя всего один клиентский HTML-файл и настроенную под свои нужды JSON-матрицу шаблона."
+    }
+  ],
+  "matrixColor": "46, 46, 209",
+  "rayColor": "56, 56, 255",
+  "rayColorAlt": "240, 100, 50",
+  "customCSS": "/* 1. Загрузка главного фонового изображения для страницы проекта */ .news-image-placeholder { background-image: url('assets/manifest/content/preview/QL-ABOUT-image_0000.png'); background-size: cover; background-position: center; border: 1px solid rgba(46, 46, 209, 0.5); } /* Скрываем текстовую заглушку поверх загруженного изображения */ .news-image-placeholder .image-text { display: none; } /* 2. Переопределение стандартного текста копирайта в подвале */ footer p { display: none !important; } footer::after { content: '© 2026 QuadLegacy. Все права не защищены.'; font-size: 12px; color: #555; font-family: 'Courier New', Courier, monospace; display: block; }"
+}
