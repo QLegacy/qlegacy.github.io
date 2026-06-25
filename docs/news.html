@@ -5,16 +5,29 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>QuadLegacy Portal | Загрузка системы...</title>
     <style>
+        /* CSS Переменные по умолчанию (зеленая тема) */
+        :root {
+            --theme-color: #00ff00;
+            --theme-color-rgb: 0, 255, 100;
+            --theme-color-glow: rgba(0, 255, 100, 0.5);
+            --bg-color: #000000;
+            --text-color: #e0e0e0;
+            --quote-text-color: #a5f3a5;
+            --scanline-color: rgba(0, 255, 0, 0.6);
+            --scanline-glow: #00ff00;
+        }
+
         /* Базовые стили */
         html, body {
             margin: 0;
             padding: 0;
             width: 100%;
             min-height: 100vh;
-            background-color: #000;
+            background-color: var(--bg-color);
             overflow-x: hidden;
-            color: #e0e0e0;
+            color: var(--text-color);
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            transition: background-color 0.5s ease;
         }
 
         /* 3D-Матричный фон */
@@ -70,7 +83,7 @@
             transform-style: preserve-3d;
             transition: transform 0.6s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.5s ease;
             cursor: zoom-in;
-            opacity: 0; /* Скрыто до полной загрузки JSON */
+            opacity: 0; 
             display: none;
         }
 
@@ -88,17 +101,17 @@
             z-index: 100;
             font-family: 'Courier New', Courier, monospace;
             background: rgba(5, 10, 5, 0.95);
-            border: 1px solid #00ff00;
+            border: 1px solid var(--theme-color);
             padding: 30px;
             border-radius: 8px;
-            box-shadow: 0 0 30px rgba(0, 255, 0, 0.2);
+            box-shadow: 0 0 30px rgba(var(--theme-color-rgb), 0.2);
             max-width: 90%;
             width: 500px;
             transition: opacity 0.5s ease;
         }
 
         #system-loader h2 {
-            color: #00ff00;
+            color: var(--theme-color);
             margin-bottom: 15px;
             font-size: 18px;
             text-transform: uppercase;
@@ -124,20 +137,20 @@
             align-items: center;
             padding: 20px;
             background: rgba(8, 12, 8, 0.85);
-            border: 1px solid #00ff0033;
+            border: 1px solid rgba(var(--theme-color-rgb), 0.2);
             border-radius: 8px;
             backdrop-filter: blur(12px);
             margin-bottom: 30px;
-            box-shadow: 0 0 20px rgba(0, 255, 0, 0.1);
+            box-shadow: 0 0 20px rgba(var(--theme-color-rgb), 0.1);
         }
 
         .logo {
             font-size: 24px;
             font-weight: bold;
-            color: #00ff00;
+            color: var(--theme-color);
             text-transform: uppercase;
             letter-spacing: 2px;
-            text-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+            text-shadow: 0 0 10px var(--theme-color-glow);
             font-family: 'Courier New', Courier, monospace;
         }
 
@@ -151,31 +164,31 @@
         }
 
         nav a:hover {
-            color: #00ff00;
-            text-shadow: 0 0 8px rgba(0, 255, 0, 0.6);
+            color: var(--theme-color);
+            text-shadow: 0 0 8px var(--theme-color-glow);
         }
 
         .news-card {
             background: rgba(6, 10, 6, 0.9);
-            border: 1px solid #00ff0044;
+            border: 1px solid rgba(var(--theme-color-rgb), 0.27);
             border-radius: 12px;
             padding: 40px;
             backdrop-filter: blur(15px);
-            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.8), 0 0 30px rgba(0, 255, 0, 0.03);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.8), 0 0 30px rgba(var(--theme-color-rgb), 0.03);
             transform: translateZ(30px);
         }
 
         .news-category {
             display: inline-block;
-            background: rgba(0, 255, 0, 0.15);
-            color: #00ff00;
+            background: rgba(var(--theme-color-rgb), 0.15);
+            color: var(--theme-color);
             padding: 4px 12px;
             border-radius: 4px;
             font-size: 12px;
             text-transform: uppercase;
             font-weight: bold;
             margin-bottom: 15px;
-            border: 1px solid rgba(0, 255, 0, 0.3);
+            border: 1px solid rgba(var(--theme-color-rgb), 0.3);
         }
 
         h1 {
@@ -202,7 +215,7 @@
                         linear-gradient(45deg, #070a07 25%, transparent 25%);
             background-size: 100px 100px;
             background-color: #020302;
-            border: 2px dashed rgba(0, 255, 0, 0.4);
+            border: 2px dashed rgba(var(--theme-color-rgb), 0.4);
             border-radius: 8px;
             display: flex;
             align-items: center;
@@ -218,10 +231,11 @@
             position: absolute;
             width: 100%;
             height: 2px;
-            background: rgba(0, 255, 0, 0.6);
+            background: var(--scanline-color);
             top: 0;
-            box-shadow: 0 0 15px #00ff00;
+            box-shadow: 0 0 15px var(--scanline-glow);
             animation: scanline 6s linear infinite;
+            z-index: 5;
         }
 
         @keyframes scanline {
@@ -231,7 +245,7 @@
         }
 
         .image-text {
-            color: #00ff00;
+            color: var(--theme-color);
             font-family: 'Courier New', Courier, monospace;
             font-weight: bold;
             text-transform: uppercase;
@@ -240,9 +254,40 @@
             z-index: 2;
             padding: 20px;
             background: rgba(0, 0, 0, 0.85);
-            border: 1px solid #00ff0055;
+            border: 1px solid rgba(var(--theme-color-rgb), 0.33);
             border-radius: 4px;
-            white-space: pre-wrap; /* Переносы строк из JSON */
+            white-space: pre-wrap; 
+        }
+
+        /* Обертка для картинок внутри контента с эффектом сканирования */
+        .img-scanline-container {
+            position: relative;
+            display: inline-block;
+            max-width: 100%;
+            border: 1px solid rgba(var(--theme-color-rgb), 0.4);
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 0 15px rgba(var(--theme-color-rgb), 0.25);
+            margin: 15px 0;
+        }
+
+        .img-scanline-container img {
+            display: block;
+            max-width: 100%;
+            height: auto;
+        }
+
+        .img-scanline-container::before {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 2px;
+            background: var(--scanline-color);
+            top: 0;
+            box-shadow: 0 0 15px var(--scanline-glow);
+            animation: scanline 6s linear infinite;
+            z-index: 3;
+            pointer-events: none;
         }
 
         .news-content p {
@@ -253,12 +298,12 @@
         }
 
         blockquote {
-            border-left: 4px solid #00ff00;
+            border-left: 4px solid var(--theme-color);
             padding-left: 20px;
             margin: 30px 0;
             font-style: italic;
-            color: #a5f3a5;
-            background: rgba(0, 255, 0, 0.03);
+            color: var(--quote-text-color);
+            background: rgba(var(--theme-color-rgb), 0.03);
             padding-top: 10px;
             padding-bottom: 10px;
         }
@@ -326,7 +371,6 @@
             <header>
                 <div class="logo" id="dyn-logo">QuadLegacy</div>
                 <nav>
-                    <!-- Настроенные динамические и статические ссылки -->
                     <a href="https://qlegacy.github.io/terminal.html">Терминал</a>
                     <a href="https://t.me/quadlegacybio" target="_blank">Наша база</a>
                     <a href="?manifest=AboutProject">О проекте</a>
@@ -359,16 +403,12 @@
     <style id="dynamic-css"></style>
 
     <script>
-        // Глобальные настраиваемые параметры для эффектов (переписываются из JSON)
         let config = {
             matrixColor: "0, 255, 100",
             rayColor: "255, 170, 10",
             rayColorAlt: "255, 235, 140"
         };
 
-        // ==========================================
-        // Парсинг манифеста из URL
-        // ==========================================
         const loader = document.getElementById('system-loader');
         const loaderManifest = document.getElementById('loader-manifest');
         const loaderStatus = document.getElementById('loader-status');
@@ -378,7 +418,7 @@
         const manifestParam = urlParams.get('manifest');
 
         if (!manifestParam) {
-            setLoaderError("ОШИБКА: Манифест не указан", "Добавьте в адресную строку параметр ?manifest=ИМЯ_ФАЙЛА (например, ?manifest=24-06-26)");
+            setLoaderError("ОШИБКА: Манифест не указан", "Добавьте в адресную строку параметр ?manifest=ИМЯ_ФАЙЛА (например, ?manifest=AboutProject)");
         } else {
             loaderManifest.textContent = `Путь: assets/manifest/json/${manifestParam}.json`;
             loaderStatus.textContent = "Загрузка данных...";
@@ -398,7 +438,6 @@
                 });
         }
 
-        // Вывод ошибки в загрузчик
         function setLoaderError(title, desc) {
             loader.classList.add('error-state');
             loader.innerHTML = `
@@ -408,9 +447,7 @@
             `;
         }
 
-        // Рендеринг данных из полученного JSON
         function renderPage(data) {
-            // 1. Текстовые поля
             if (data.logoText) document.getElementById('dyn-logo').textContent = data.logoText;
             if (data.newsCategory) document.getElementById('dyn-category').textContent = data.newsCategory;
             if (data.title) {
@@ -419,6 +456,25 @@
             }
             if (data.meta) document.getElementById('dyn-meta').textContent = data.meta;
             if (data.imageText) document.getElementById('dyn-image-text').textContent = data.imageText;
+
+            // 1. Динамическая подстройка CSS-переменных под тему
+            const themeRGB = data.themeColorRGB || data.rayColor || "0, 255, 100";
+            const themeHex = data.themeColor || `rgb(${themeRGB})`;
+            const bgColor = data.bgColor || "#000000";
+            const textColor = data.textColor || "#e0e0e0";
+            const quoteColor = data.quoteTextColor || `rgba(${themeRGB}, 0.85)`;
+            const scanlineCol = data.scanlineColor || `rgba(${themeRGB}, 0.6)`;
+            const scanlineGlowCol = data.scanlineGlow || themeHex;
+
+            const root = document.documentElement;
+            root.style.setProperty('--theme-color', themeHex);
+            root.style.setProperty('--theme-color-rgb', themeRGB);
+            root.style.setProperty('--theme-color-glow', `rgba(${themeRGB}, 0.5)`);
+            root.style.setProperty('--bg-color', bgColor);
+            root.style.setProperty('--text-color', textColor);
+            root.style.setProperty('--quote-text-color', quoteColor);
+            root.style.setProperty('--scanline-color', scanlineCol);
+            root.style.setProperty('--scanline-glow', scanlineGlowCol);
 
             // 2. Генерация тела новости
             const contentBox = document.getElementById('dyn-content');
@@ -438,20 +494,43 @@
                 });
             }
 
-            // 3. Кастомные настройки эффектов
+            // 3. Автоматическое оборачивание картинок в контейнер со сканером
+            const bodyImages = contentBox.querySelectorAll('img');
+            bodyImages.forEach(img => {
+                // Если изображение уже внутри контейнера-сканера — пропускаем
+                if (img.parentElement.classList.contains('img-scanline-container')) return;
+
+                const wrapper = document.createElement('div');
+                wrapper.className = 'img-scanline-container';
+                
+                // Проверяем выравнивание родителя картинки
+                if (img.style.display === 'block' || img.parentElement.style.textAlign === 'center') {
+                    wrapper.style.margin = '15px auto';
+                    wrapper.style.display = 'block';
+                }
+
+                // Убираем старые инлайновые границы/тени, чтобы они не накладывались на наш контейнер
+                img.style.border = 'none';
+                img.style.boxShadow = 'none';
+
+                img.parentNode.insertBefore(wrapper, img);
+                wrapper.appendChild(img);
+            });
+
+            // 4. Кастомные настройки эффектов Canvas
             if (data.matrixColor) config.matrixColor = data.matrixColor;
             if (data.rayColor) config.rayColor = data.rayColor;
             if (data.rayColorAlt) config.rayColorAlt = data.rayColorAlt;
 
-            // 4. Инжекция пользовательских стилей (CSS)
+            // 5. Инжекция пользовательских стилей (CSS)
             if (data.customCSS) {
                 document.getElementById('dynamic-css').textContent = data.customCSS;
             }
 
-            // Инициализация Canvas после получения настроек из JSON
+            // Инициализация Canvas
             initMatrix();
 
-            // 5. Плавный запуск интерфейса
+            // 6. Плавный запуск интерфейса
             loader.style.opacity = '0';
             setTimeout(() => {
                 loader.style.display = 'none';
